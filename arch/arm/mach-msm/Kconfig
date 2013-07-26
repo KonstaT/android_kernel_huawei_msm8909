@@ -112,6 +112,7 @@ config ARCH_MSM8909
 	select MSM_BIMC_BWMON
 	select MSM_JTAG_MM if CORESIGHT_ETM
 	select RCU_BOOST if DEBUG_KMEMLEAK
+	select HAS_MACH_MEMUTILS
 
 config ARCH_MSM8916
 	bool "MSM8916"
@@ -1049,6 +1050,12 @@ config FSM9900_GSM_NL
 	  The DIQ functionality is disabled and the UART functionality is enabled.
 	  The serial port connection can be established to communicate with the
 	  GSM NL module.
+
+config HAS_MACH_MEMUTILS
+	default n
+	bool "Motorola MSM memcpy enhancements"
+	help
+	Faster memcpy performance for Krait
 
 #added by litao begin
 source "arch/arm/mach-msm/product_list/Kconfig"

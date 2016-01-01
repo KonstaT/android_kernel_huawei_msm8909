@@ -1,0 +1,39 @@
+#
+#     date      	author      	why
+#  2015.5.25      yuquan         add ar650x product
+
+#
+# YEP_product_list
+#  
+
+#========================================================
+config Y560_U23_BASE
+        depends on ARCH_MSM8909
+        bool "Y560_U23 product"
+        help
+          Fix version type as Y560_U23.
+#========================================================
+
+#========================================================
+config Y560_L01_BASE
+        depends on ARCH_MSM8909
+        bool "Y560_L01 product"
+        help
+          Fix version type as Y560_L01.
+#========================================================
+
+#========================================================
+config Y560_L02_BASE
+        depends on ARCH_MSM8909
+        bool "Y560_L02 product"
+        help
+          Fix version type as Y560_L02.
+#========================================================
+
+#========================================================
+config HUAWEI_USB
+        depends on ARCH_MSM8909
+        bool "HUAWEI_USB product"
+        help
+          Fix version type as HUAWEI_USB.
+#========================================================

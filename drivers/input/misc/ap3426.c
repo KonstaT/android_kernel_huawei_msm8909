@@ -85,7 +85,7 @@
 
 //added by shihuijun for pocket mode 20150127
 bool proximity_open_flag;
-extern int yep_i2c_err_flag;
+int yep_i2c_err_flag;
 //static void pl_timer_callback(unsigned long pl_data);
 static int ap3426_power_ctl(struct ap3426_data *data, bool on);
 static int ap3426_power_init(struct ap3426_data*data, bool on);

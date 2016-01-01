@@ -559,7 +559,7 @@ int mdp3_calc_ppp_res(struct msm_fb_data_type *mfd,  struct blit_req_list *lreq)
 				mdp3_res->solid_fill_vote_en);
 			ATRACE_END(__func__);
 			return 0;
-		}
+		}		
 	}
 
 	for (i = 0; i < lcount; i++) {
@@ -596,8 +596,8 @@ int mdp3_calc_ppp_res(struct msm_fb_data_type *mfd,  struct blit_req_list *lreq)
 			src_read_bw = mdp3_adjust_scale_factor(req,
 						src_read_bw, bpp.bpp_pln);
 			if (!(check_if_rgb(req->src.format))) {
-				src_read_bw = src_read_bw * YUV_BW_FUDGE_NUM;
-				src_read_bw = do_div(src_read_bw,
+				src_read_bw = fudge_factor(src_read_bw,
+						YUV_BW_FUDGE_NUM,
 						YUV_BW_FUDGE_DEN);
 			}
 			mdp3_get_bpp_info(req->dst.format, &bpp);
@@ -632,11 +632,13 @@ int mdp3_calc_ppp_res(struct msm_fb_data_type *mfd,  struct blit_req_list *lreq)
 		honest_ppp_ab = ppp_res.solid_fill_byte * 4;
 		pr_debug("solid fill honest_ppp_ab %llu\n", honest_ppp_ab);
 	} else {
-	honest_ppp_ab += ppp_res.solid_fill_byte;
-	mdp3_res->solid_fill_vote_en = true;
-        }
-
+		honest_ppp_ab += ppp_res.solid_fill_byte;
+		mdp3_res->solid_fill_vote_en = true;
+	 }
+	 
 	honest_ppp_ab = honest_ppp_ab * fps;
+
+
 	if (honest_ppp_ab != ppp_res.next_ab) {
 		ppp_res.next_ab = honest_ppp_ab;
 		ppp_res.next_ib = honest_ppp_ab;
@@ -644,6 +646,7 @@ int mdp3_calc_ppp_res(struct msm_fb_data_type *mfd,  struct blit_req_list *lreq)
 		pr_debug("solid fill ab = %llx, total ab = %llx (%d fps) Solid_fill_vote %d\n",
 			(ppp_res.solid_fill_byte * fps), honest_ppp_ab, fps,
 			mdp3_res->solid_fill_vote_en);
+
 		ATRACE_INT("mdp3_ppp_bus_quota", honest_ppp_ab);
 	}
 	ppp_res.clk_rate = mdp3_clk_calc(mfd, lreq, fps);

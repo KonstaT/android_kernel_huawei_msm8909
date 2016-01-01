@@ -1,0 +1,60 @@
+/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/*
+ * As a general rule, only version-specific property overrides should be placed
+ * inside this file. However, device definitions should be placed inside the
+ * yep_product_ql1000_lcd_panel_settings.dtsi file.
+ */
+/*qcom,dsi-pref-prim-pan is used as default panel if any panel is detected from lk*/
+
+/*  Date            Author         	 		Why
+   2015-01-12       litao2          		creat
+   2015-01-27       zhouwentao				add lcd for qw702
+   2015-02-26       zhouwentao				add tcl lcd for qw702
+*/
+ 
+&mdss_mdp {
+	qcom,mdss-pref-prim-intf = "dsi";
+};
+
+&pmx_mdss {
+	qcom,num-grp-pins = <1>;
+	qcom,pins = <&gp 25>;
+};
+&pmx_mdss_te {
+	qcom,num-grp-pins = <1>;
+	qcom,pins = <&gp 24>;
+};
+
+&mdss_dsi0 {
+	qcom,dsi-pref-prim-pan = <&dsi_hx8379a_fwvga_skua_vid>;
+	pinctrl-names = "mdss_default", "mdss_sleep";
+	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
+	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
+	qcom,lcd-vsp-gpio = <&msm_gpio 110 0>;
+	qcom,lcd-vsn-gpio = <&msm_gpio 120 0>;
+	qcom,platform-reset-gpio = <&msm_gpio 25 0>;
+};
+
+&dsi_ili9806e_fwvga_video {
+	qcom,cont-splash-enabled;
+};
+&dsi_hx8379c_txd_hsd_4p5_fwvga_vid {
+	qcom,cont-splash-enabled;
+};
+&dsi_ili9806e_dijing_hsd4p5inch_fwvga_vid {
+	qcom,cont-splash-enabled;
+};
+&ili9806e_tcl_clag045lj_cpt4p5inch_fwvga_vid {
+	qcom,cont-splash-enabled;
+};

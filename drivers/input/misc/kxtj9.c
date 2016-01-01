@@ -28,7 +28,11 @@
 #include <linux/input-polldev.h>
 #include <linux/regulator/consumer.h>
 #include <linux/of.h>
-
+//add by yanfei for hardware information 20140805 begin
+#ifdef CONFIG_GET_HARDWARE_INFO
+#include <mach/hardware_info.h>
+#endif
+//add by yanfei for hardware information 20140805 end
 #define ACCEL_INPUT_DEV_NAME	"accelerometer"
 #define DEVICE_NAME		"kxtj9"
 
@@ -150,10 +154,13 @@ static int kxtj9_i2c_read(struct kxtj9_data *tj9, u8 addr, u8 *data, int len)
 
 static void kxtj9_report_acceleration_data(struct kxtj9_data *tj9)
 {
+/*** modified by litao for timestamp 2015-05-19 begin ***/
+	ktime_t ts;
 	s16 acc_data[3]; /* Data bytes from hardware xL, xH, yL, yH, zL, zH */
 	s16 x, y, z;
 	int err;
 
+	ts = ktime_get_boottime();
 	err = kxtj9_i2c_read(tj9, XOUT_L, (u8 *)acc_data, 6);
 	if (err < 0)
 		dev_err(&tj9->client->dev, "accelerometer data read failed\n");
@@ -168,14 +175,21 @@ static void kxtj9_report_acceleration_data(struct kxtj9_data *tj9)
 		y <<= 4;
 		z <<= 4;
 	}
-
+//added by litao for 16g fixed range begin 
+#if 0
 	x >>= tj9->shift;
 	y >>= tj9->shift;
 	z >>= tj9->shift;
-
+#endif
+//added by litao for 16g fixed range end 
 	input_report_abs(tj9->input_dev, ABS_X, tj9->pdata.negate_x ? -x : x);
 	input_report_abs(tj9->input_dev, ABS_Y, tj9->pdata.negate_y ? -y : y);
 	input_report_abs(tj9->input_dev, ABS_Z, tj9->pdata.negate_z ? -z : z);
+	input_event(tj9->input_dev, EV_SYN, SYN_TIME_SEC,
+			ktime_to_timespec(ts).tv_sec);
+	input_event(tj9->input_dev, EV_SYN, SYN_TIME_NSEC,
+			ktime_to_timespec(ts).tv_nsec);
+/*** modified by litao for timestamp 2015-05-19 end ***/
 	input_sync(tj9->input_dev);
 }
 
@@ -183,6 +197,7 @@ static irqreturn_t kxtj9_isr(int irq, void *dev)
 {
 	struct kxtj9_data *tj9 = dev;
 	int err;
+	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 
 	/* data ready is the only possible interrupt type */
 	kxtj9_report_acceleration_data(tj9);
@@ -382,6 +397,7 @@ static void kxtj9_device_power_off(struct kxtj9_data *tj9)
 
 	tj9->ctrl_reg1 &= PC1_OFF;
 	err = i2c_smbus_write_byte_data(tj9->client, CTRL_REG1, tj9->ctrl_reg1);
+	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 	if (err < 0)
 		dev_err(&tj9->client->dev, "soft power off failed\n");
 
@@ -397,10 +413,12 @@ static void kxtj9_device_power_off(struct kxtj9_data *tj9)
 static int kxtj9_enable(struct kxtj9_data *tj9)
 {
 	int err;
-
+//add by yanfei for poll delay 20140805
+	tj9->poll_dev->poll_interval=tj9->cdev.delay_msec;
 	err = kxtj9_device_power_on(tj9);
 	if (err < 0)
 		return err;
+	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 
 	/* ensure that PC1 is cleared before updating control registers */
 	err = i2c_smbus_write_byte_data(tj9->client, CTRL_REG1, 0);
@@ -504,12 +522,14 @@ static int kxtj9_enable_set(struct sensors_classdev *sensors_cdev,
 	mutex_lock(&input_dev->mutex);
 
 	if (enabled == 0) {
-		disable_irq(tj9->client->irq);
+//delete by yanfei for poll delay 20140805 begin
+	//	disable_irq(tj9->client->irq);
 		kxtj9_disable(tj9);
 		tj9->enable = false;
 	} else if (enabled == 1) {
 		if (!kxtj9_enable(tj9)) {
-			enable_irq(tj9->client->irq);
+	//		enable_irq(tj9->client->irq);
+//delete by yanfei for poll delay 20140805 end
 			tj9->enable = true;
 		}
 	} else {
@@ -571,18 +591,21 @@ static int kxtj9_poll_delay_set(struct sensors_classdev *sensors_cdev,
 	struct kxtj9_data *tj9 = container_of(sensors_cdev,
 					struct kxtj9_data, cdev);
 	struct input_dev *input_dev = tj9->input_dev;
-
+//add by yanfei for poll delay 20140805
+	tj9->poll_dev->poll_interval=delay_msec;
 	/* Lock the device to prevent races with open/close (and itself) */
 	mutex_lock(&input_dev->mutex);
-
-	if (tj9->enable)
-		disable_irq(tj9->client->irq);
+//delete by yanfei for poll delay 20140805 begin
+//	if (tj9->enable)
+//		disable_irq(tj9->client->irq);
+	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 
 	tj9->last_poll_interval = max(delay_msec, tj9->pdata.min_interval);
 
 	if (tj9->enable) {
 		kxtj9_update_odr(tj9, tj9->last_poll_interval);
-		enable_irq(tj9->client->irq);
+//		enable_irq(tj9->client->irq);
+//delete by yanfei for poll delay 20140805 end
 	}
 	mutex_unlock(&input_dev->mutex);
 
@@ -595,6 +618,7 @@ static ssize_t kxtj9_get_poll_delay(struct device *dev,
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct kxtj9_data *tj9 = i2c_get_clientdata(client);
+	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 
 	return sprintf(buf, "%d\n", tj9->last_poll_interval);
 }
@@ -612,6 +636,7 @@ static ssize_t kxtj9_set_poll_delay(struct device *dev,
 	error = kstrtouint(buf, 10, &interval);
 	if (error < 0)
 		return error;
+	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 
 	error = kxtj9_poll_delay_set(&tj9->cdev, interval);
 	if (error < 0)
@@ -671,10 +696,12 @@ static int kxtj9_setup_polled_device(struct kxtj9_data *tj9)
 			"Failed to allocate polled device\n");
 		return -ENOMEM;
 	}
+	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 
 	tj9->poll_dev = poll_dev;
 	tj9->input_dev = poll_dev->input;
-
+//add by yanfei for poll delay 20140805
+	tj9->poll_dev->poll_interval=tj9->cdev.delay_msec;
 	poll_dev->private = tj9;
 	poll_dev->poll = kxtj9_poll;
 	poll_dev->open = kxtj9_polled_input_open;
@@ -721,8 +748,8 @@ static int kxtj9_verify(struct kxtj9_data *tj9)
 		dev_err(&tj9->client->dev, "read err int source\n");
 		goto out;
 	}
-
-	retval = (retval != 0x05 && retval != 0x07 && retval != 0x08)
+//modified by yanfei for kxtj9 20140730
+	retval = (retval != 0x05 && retval != 0x07 && retval != 0x08 && retval != 0x09 && retval != 0x11)
 			? -EIO : 0;
 
 out:
@@ -817,7 +844,8 @@ static int kxtj9_parse_dt(struct device *dev,
 	return -ENODEV;
 }
 #endif /* !CONFIG_OF */
-
+// added by yanfei  for acc hardware devices info  2014-08-05
+static struct of_device_id kxtj9_match_table[] ;
 static int kxtj9_probe(struct i2c_client *client,
 				 const struct i2c_device_id *id)
 {
@@ -887,19 +915,10 @@ static int kxtj9_probe(struct i2c_client *client,
 	tj9->ctrl_reg1 = tj9->pdata.res_ctl | tj9->pdata.g_range;
 	tj9->last_poll_interval = tj9->pdata.init_interval;
 
-	tj9->cdev = sensors_cdev;
-	/* The min_delay is used by userspace and the unit is microsecond. */
-	tj9->cdev.min_delay = tj9->pdata.min_interval * 1000;
-	tj9->cdev.delay_msec = tj9->pdata.init_interval;
-	tj9->cdev.sensors_enable = kxtj9_enable_set;
-	tj9->cdev.sensors_poll_delay = kxtj9_poll_delay_set;
-	err = sensors_classdev_register(&tj9->input_dev->dev, &tj9->cdev);
-	if (err) {
-		dev_err(&client->dev, "class device create failed: %d\n", err);
-		goto err_power_off;
-	}
 
-	if (client->irq) {
+//modify by yanfei for kxtj9 20140730
+//	if (client->irq) {
+	if(0){ 
 		/* If in irq mode, populate INT_CTRL_REG1 and enable DRDY. */
 		tj9->int_ctrl |= KXTJ9_IEN | KXTJ9_IEA | KXTJ9_IEL;
 		tj9->ctrl_reg1 |= DRDYE;
@@ -930,7 +949,23 @@ static int kxtj9_probe(struct i2c_client *client,
 			goto err_power_off;
 	}
 
-
+	tj9->cdev = sensors_cdev;
+	/* The min_delay is used by userspace and the unit is microsecond. */
+	tj9->cdev.min_delay = tj9->pdata.min_interval * 1000;
+	tj9->cdev.delay_msec = tj9->pdata.init_interval;
+	tj9->cdev.sensors_enable = kxtj9_enable_set;
+	tj9->cdev.sensors_poll_delay = kxtj9_poll_delay_set;
+	err = sensors_classdev_register(&tj9->input_dev->dev, &tj9->cdev);
+	if (err) {
+		dev_err(&client->dev, "class device create failed: %d\n", err);
+		goto err_power_off;
+	}
+	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
+//add by yanfei for hardware information 20140805 begin
+#ifdef CONFIG_GET_HARDWARE_INFO
+	register_hardware_info(GSENSOR, kxtj9_match_table[0].compatible);
+#endif
+//add by yanfei for hardware information 20140805 end
 	dev_dbg(&client->dev, "%s: kxtj9_probe OK.\n", __func__);
 	kxtj9_device_power_off(tj9);
 	return 0;
@@ -982,7 +1017,7 @@ static int kxtj9_suspend(struct device *dev)
 	struct i2c_client *client = to_i2c_client(dev);
 	struct kxtj9_data *tj9 = i2c_get_clientdata(client);
 	struct input_dev *input_dev = tj9->input_dev;
-
+//	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 	mutex_lock(&input_dev->mutex);
 
 	if (input_dev->users && tj9->enable)
@@ -998,6 +1033,7 @@ static int kxtj9_resume(struct device *dev)
 	struct kxtj9_data *tj9 = i2c_get_clientdata(client);
 	struct input_dev *input_dev = tj9->input_dev;
 	int retval = 0;
+//	printk(KERN_ERR"%s  %d \n",__func__,__LINE__);
 
 	mutex_lock(&input_dev->mutex);
 

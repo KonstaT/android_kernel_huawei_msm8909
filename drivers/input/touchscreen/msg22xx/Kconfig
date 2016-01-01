@@ -1,0 +1,15 @@
+#
+# Mstar Msg22xx Touchscreen driver
+#
+
+#add by litao for msg22xx touch 2014-11-05 begin		  
+config TOUCHSCREEN_MSG22XX
+	bool "Mstar touchpanel MSG22XX series"
+	depends on I2C
+	help
+	  Say Y here if you have a Mstar MSG22XX touchscreen.
+	  MSG22XX controllers are multi touch controllers which can
+	  report 5 touches at a time.
+
+          If unsure, say N.
+#add by litao for msg22xx touch 2014-11-05 end

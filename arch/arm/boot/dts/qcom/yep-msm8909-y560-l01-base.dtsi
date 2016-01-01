@@ -1,0 +1,213 @@
+/* Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/*  Date            Author          Why
+    2014-01-12      litao2          creat
+*/  
+ 
+#include "yep-msm8909-y560l.dtsi"
+#include "yep-msm8909-y560l-camera.dtsi"
+#include "yep-msm8909-y560ul-lcd-panels.dtsi"
+#include "yep-msm8909-y560ul-lcd-panel-settings.dtsi"
+#include "yep-msm8909-y560ul-tp.dtsi"
+#include "yep-msm8909-y560l-sensors.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. MSM8909 QRD SKUC";
+	compatible = "qcom,msm8909-qrd", "qcom,msm8909", "qcom,qrd";
+};
+
+&soc {
+
+	sound {
+		compatible = "qcom,msm8x16-audio-codec";
+		qcom,model = "msm8909-skuc-snd-card";
+		qcom,msm-snd-card-id = <0>;
+		qcom,msm-codec-type = "internal";
+		qcom,msm-ext-pa = "primary";
+		qcom,msm-mclk-freq = <9600000>;
+		qcom,msm-mbhc-hphl-swh = <1>;
+		qcom,msm-mbhc-gnd-swh = <0>;
+		qcom,msm-hs-micbias-type = "internal";
+		qcom,msm-micbias1-ext-cap;
+		qcom,msm-micbias2-ext-cap;
+		qcom,audio-routing =
+			"RX_BIAS", "MCLK",
+			"SPK_RX_BIAS", "MCLK",
+			"INT_LDO_H", "MCLK",
+			"MIC BIAS Internal1", "Handset Mic",
+			"MIC BIAS Internal2", "Headset Mic",
+			"MIC BIAS Internal3", "Secondary Mic",
+			"AMIC1", "MIC BIAS Internal1",
+			"AMIC2", "MIC BIAS Internal2",
+			"AMIC3", "MIC BIAS Internal3";
+		pinctrl-names = "cdc_lines_act",
+				"cdc_lines_sus";
+		pinctrl-0 = <&cdc_pdm_lines_act>;
+		pinctrl-1 = <&cdc_pdm_lines_sus>;
+		asoc-platform = <&pcm0>, <&pcm1>, <&voip>, <&voice>,
+				<&loopback>, <&compress>, <&hostless>,
+				<&afe>, <&lsm>, <&routing>, <&lpa>,
+				<&voice_svc>;
+		asoc-platform-names = "msm-pcm-dsp.0", "msm-pcm-dsp.1",
+				"msm-voip-dsp", "msm-pcm-voice", "msm-pcm-loopback",
+				"msm-compress-dsp", "msm-pcm-hostless", "msm-pcm-afe",
+				"msm-lsm-client", "msm-pcm-routing", "msm-pcm-lpa",
+				"msm-voice-svc";
+		asoc-cpu = <&dai_pri_auxpcm>, <&dai_hdmi>,
+				<&dai_mi2s0>, <&dai_mi2s1>, <&dai_mi2s2>, <&dai_mi2s3>,
+				<&sb_0_rx>, <&sb_0_tx>, <&sb_1_rx>, <&sb_1_tx>,
+				<&sb_3_rx>, <&sb_3_tx>, <&sb_4_rx>, <&sb_4_tx>,
+				<&bt_sco_rx>, <&bt_sco_tx>, <&int_fm_rx>, <&int_fm_tx>,
+				<&afe_pcm_rx>, <&afe_pcm_tx>, <&afe_proxy_rx>, <&afe_proxy_tx>,
+				<&incall_record_rx>, <&incall_record_tx>, <&incall_music_rx>,
+				<&incall_music_2_rx>;
+		asoc-cpu-names = "msm-dai-q6-auxpcm.1", "msm-dai-q6-hdmi.8",
+				"msm-dai-q6-mi2s.0", "msm-dai-q6-mi2s.1",
+				"msm-dai-q6-mi2s.2", "msm-dai-q6-mi2s.3",
+				"msm-dai-q6-dev.16384", "msm-dai-q6-dev.16385",
+				"msm-dai-q6-dev.16386", "msm-dai-q6-dev.16387",
+				"msm-dai-q6-dev.16390", "msm-dai-q6-dev.16391",
+				"msm-dai-q6-dev.16392", "msm-dai-q6-dev.16393",
+				"msm-dai-q6-dev.12288", "msm-dai-q6-dev.12289",
+				"msm-dai-q6-dev.12292", "msm-dai-q6-dev.12293",
+				"msm-dai-q6-dev.224", "msm-dai-q6-dev.225",
+				"msm-dai-q6-dev.241", "msm-dai-q6-dev.240",
+				"msm-dai-q6-dev.32771", "msm-dai-q6-dev.32772",
+				"msm-dai-q6-dev.32773", "msm-dai-q6-dev.32770";
+		asoc-codec = <&stub_codec>, <&pm8909_conga_dig>;
+		asoc-codec-names = "msm-stub-codec.1", "tombak_codec";
+		qcom,ext-spk-amp-gpio = <&msm_gpio 98 0>;/* Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 */
+	};
+};
+
+&pm8909_chg {
+	qcom,cool-bat-decidegc = <100>;
+	qcom,warm-bat-decidegc = <450>;
+	qcom,vinmin-mv = <4408>;
+	qcom,cool-bat-mv = <4350>;
+	qcom,warm-bat-mv = <4250>;
+	qcom,ibatmax-warm-ma = <630>;
+	qcom,ibatmax-cool-ma = <630>;
+	qcom,vddmax-mv = <4360>;
+	qcom,vddsafe-mv = <4370>;
+	qcom,batt-hot-percentage = <35>;
+	qcom,batt-cold-percentage = <70>;
+	qcom,tchg-mins = <360>;
+	qcom,btc-disabled;
+	status = "okay";
+};
+
+/ {
+	qrd_batterydata_byd: qcom,battery-data-byd  {
+		qcom,rpull-up-kohm = <100>;
+		qcom,vref-batt-therm = <1800000>;
+
+		#include "msm8909-y560-byd-4v35-2000mah.dtsi"
+	};
+	qrd_batterydata_scud: qcom,battery-data-scud {
+		qcom,rpull-up-kohm = <100>;
+		qcom,vref-batt-therm = <1800000>;
+
+		#include "msm8909-y560-scud-4v35-2000mah.dtsi"
+	};
+};
+
+&pm8909_bms {
+	status = "okay";
+	qcom,max-voltage-uv = <4350000>;
+	qcom,v-cutoff-uv = <3450000>;
+	qcom,low-voltage-calculate-soc-ms = <30000>;
+	qcom,low-soc-calculate-soc-ms = <80000>;
+	qcom,low-voltage-threshold = <3550000>;
+	qcom,calculate-soc-ms = <120000>;
+	qcom,shutdown-soc-valid-limit = <30>;
+	qcom,battery-data-byd = <&qrd_batterydata_byd>;
+	qcom,battery-data-fujian = <&qrd_batterydata_scud>;
+};
+/* Delete by lichuangchuang for SD card detect(8909) SW00129909 20150429 start*/
+/*
+&sdc2_cd_on {
+	/delete-property/  bias-pull-up;
+	bias-disable;
+};
+
+&sdhc_2 {
+	qcom,no-1p8v;
+	qcom,vdd-always-on;
+	qcom,vdd-lpm-sup;
+
+	qcom,vdd-current-level = <4000 400000>;
+
+	//cd-gpios = <&msm_gpio 38 0x0>;// modify by luohao for sdcard detecting. (8916) SW00000000 20140612 
+};
+*/
+/* Delete by lichuangchuang for SD card detect(8909) SW00129909 20150429 end*/
+/*Add by lichuangchuang for delete sd card holtplug(QL702) SW00105280 2015-05-01 start*/
+&sdhc_2 {
+	qcom,nonremovable;
+	qcom,nonhotplug;
+
+	interrupts = <0 1>;
+	interrupt-map = <0 &intc 0 125 0
+		1 &intc 0 221 0>;
+	interrupt-names = "hc_irq", "pwr_irq";
+	/delete-property/ cd-gpios;
+};
+/*Add by lichuangchuang for delete sd card holtplug(QL702) SW00105280 2015-05-01 end*/
+
+&pm8909_mpps {
+	mpp@a000 { /* MPP 1 */
+		/* VDD_PX */
+		status = "disabled";
+	};
+
+	mpp@a100 { /* MPP 2 */
+		/* Backlight PWM */
+		qcom,mode = <1>;		/* Digital output */
+		qcom,invert = <0>;		/* Disable invert */
+		qcom,src-sel = <4>;		/* DTEST1 */
+		qcom,vin-sel = <0>;		/* VPH_PWR */
+		qcom,master-en = <1>;		/* Enable MPP */
+	};
+
+	mpp@a200 { /* MPP 3 */
+		/* VREF DAC */
+		status = "disabled";
+	};
+
+	mpp@a300 { /* MPP 4 */
+		 /* PA_THERM config */
+		 qcom,mode = <4>; /* AIN input */
+		 qcom,invert = <1>; /* Enable MPP */
+		 qcom,ain-route = <3>; /* AMUX 8 */
+		 qcom,master-en = <1>;
+		 qcom,src-sel = <0>; /* Function constant */
+	};
+};
+&pm8909_vadc {
+	chan@30 {
+		qcom,scale-function = <12>;
+	};
+
+	chan@13 {
+		label = "case_therm";
+		reg = <0x13>;
+		qcom,decimation = <0>;
+		qcom,pre-div-channel-scaling = <0>;
+		qcom,calibration-type = "ratiometric";
+		qcom,scale-function = <2>;
+		qcom,hw-settle-time = <2>;
+		qcom,fast-avg-setup = <0>;
+		qcom,vadc-thermal-node;
+	};
+};

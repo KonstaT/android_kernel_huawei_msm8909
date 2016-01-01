@@ -1,0 +1,109 @@
+/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/*
+ * As a general rule, only version-specific property overrides should be placed
+ * inside this file. However, device definitions should be placed inside the
+ * yep_product_ql1001_flatform.dtsi file.
+ */
+ 
+/*  
+					Date    	Author    	   	why
+				2015-01-12      litao2          creat
+				2015-03-15      yanfei          modify for ps-sensor threshold
+*/
+
+&tlmm_pinmux {
+	ap3426_int_pin {
+		qcom,pins = <&gp 94>;
+		qcom,pin-func = <0>;
+		qcom,num-grp-pins = <1>;
+		label = "ap3426-irq";
+		ap3426_default: ap3426_default {
+			drive-strength = <6>;
+			bias-pull-up;
+		};
+		ap3426_sleep: ap3426_sleep {
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+	};
+
+	bma2x2_int1_pin {
+		qcom,pins = <&gp 96>;
+		qcom,num-grp-pins = <1>;
+		label = "bma2x2_int1_pin";
+		bma2x2_int1_default: int1_default {
+			drive-strength = <6>;
+			bias-pull-up;
+		};
+	};
+
+	bma2x2_int2_pin {
+		qcom,pins = <&gp 65>;
+		qcom,num-grp-pins = <1>;
+		label = "bma2x2_int2_pin";
+		bma2x2_int2_default: int2_default {
+			drive-strength = <6>;
+			bias-pull-up;
+		};
+	};
+};
+
+&soc {
+
+	i2c@78b5000 { /* BLSP1 QUP1 */
+
+		di_ap3426@1e {
+			compatible = "di_ap3426";
+			reg = <0x1e>;
+			pinctrl-names = "default","sleep";
+			pinctrl-0 = <&ap3426_default>;
+			pinctrl-1 = <&ap3426_sleep>;
+			interrupt-parent = <&msm_gpio>;
+			interrupts = <94 0x2002>;
+			vdd-supply = <&pm8909_l17>;
+			vio-supply = <&pm8909_l6>;
+			ap3426,irq-gpio = <&msm_gpio 94 0x2002>;
+		};
+		
+		bosch@18 { /* Accelerometer sensor */
+			compatible = "bosch,bma2x2";
+			reg = <0x18>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&bma2x2_int1_default &bma2x2_int2_default>;
+			interrupt-parent = <&msm_gpio>;
+			interrupts = <96 0x2002>;
+			vdd-supply = <&pm8909_l17>;
+			vio-supply = <&pm8909_l6>;
+			bosch,init-interval = <200>;
+			bosch,place = <1>;
+			bosch,gpio-int1 = <&msm_gpio 96 0x2002>;
+			bosch,gpio-int2 = <&msm_gpio 65 0x2002>;
+		};
+
+		kionix@e{
+			compatible = "kionix,kxtj9";
+			reg = <0x0e>;
+			vdd-supply = <&pm8909_l17>;
+			vio-supply = <&pm8909_l6>;
+			kionix,min-interval = <5>;
+			kionix,init-interval = <200>;
+			kionix,axis-map-x = <1>;
+			kionix,axis-map-y = <0>;
+			kionix,axis-map-z = <2>;
+			kionix,g-range = <2>;
+			kionix,negate-y;
+			kionix,res-12bit;
+		};
+	};
+};

@@ -612,6 +612,14 @@ config TI_DRV2667
 	  To compile this driver as a module, choose M here: the
 	  module will be called ti_drv2667.
 
+#added by litao begin
+config GET_HARDWARE_INFO
+	tristate "get hardware devices info"
+	default y
+	help
+	  get the devices info, provide interface.
+#added by litao end
+
 config QCOM_LIQUID_DOCK
 	tristate "QTI LiQUID Docking Station USB/Ethernet support"
 	depends on OF_GPIO

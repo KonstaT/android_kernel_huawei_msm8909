@@ -1062,4 +1062,30 @@ config INPUT_MT_WRAPPER
 
 	  If unsure, say N.
 
+#add by litao begin
+config TOUCHSCREEN_FT5X36
+       tristate "FocalTech touchscreens FT5X36"
+       depends on I2C
+       help
+         Say Y here if you have a ft5X36 touchscreen.
+	 Ft5x36 controllers are multi touch controllers which can
+	 report 5 touches at a time.
+
+         If unsure, say N.
+
+         To compile this driver as a module, choose M here: the
+         module will be called ft5x36_ts.
+	 
+config TOUCHSCREEN_MSG22XX
+	bool "Mstar touchpanel MSG22XX series"
+	depends on I2C
+	help
+	  Say Y here if you have a Mstar MSG22XX touchscreen.
+	  MSG22XX controllers are multi touch controllers which can
+	  report 5 touches at a time.
+
+          If unsure, say N.
+	  
+source "drivers/input/touchscreen/msg22xx/Kconfig"
+#add by litao end
 endif

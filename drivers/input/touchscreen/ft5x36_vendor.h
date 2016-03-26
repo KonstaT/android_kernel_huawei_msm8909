@@ -23,6 +23,11 @@ static unsigned char FT6X36_FIRMWARE0x9b_JINLONG[] = {
 #endif
 //added by pangle for 860 fw upgrade at 20150413 begin
 
+#if defined(CONFIG_Y560_U23_BASE) || defined(CONFIG_Y560_L01_BASE)|| defined(CONFIG_Y560_L02_BASE)
+static unsigned char FT6X36_FIRMWARE0xA0_TOPTOUCH[] = {
+	#include "ft5x36_firmware/QW702_QL703_huawei_y560_FT6336_0xA0_Ver0x0B_20150309.h"
+}; 
+#endif
 
 
 #endif

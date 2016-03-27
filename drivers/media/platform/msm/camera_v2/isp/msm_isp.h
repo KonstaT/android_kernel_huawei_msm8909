@@ -590,6 +590,9 @@ struct vfe_device {
 	uint32_t isp_sof_debug;
 	uint8_t reset_pending;
 	uint32_t bus_util_factor;
+	uint8_t fullsize_stats;
+	uint32_t stats_hnum;
+	uint32_t stats_vnum;
 };
 
 #endif

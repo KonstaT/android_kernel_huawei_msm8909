@@ -120,7 +120,9 @@ void msm_isp_process_stats_irq(struct vfe_device *vfe_dev,
 		buf_event.input_intf = VFE_PIX_0;
 		pingpong_status = vfe_dev->hw_info->
 			vfe_ops.stats_ops.get_pingpong_status(vfe_dev);
-
+		stats_event->is_full_size_stats = vfe_dev->fullsize_stats;
+		stats_event->vnum = vfe_dev->stats_vnum;
+		stats_event->hnum = vfe_dev->stats_hnum;
 		for (i = 0; i < vfe_dev->hw_info->stats_hw_info->num_stats_type;
 			i++) {
 			if (!(stats_irq_mask & (1 << i)))

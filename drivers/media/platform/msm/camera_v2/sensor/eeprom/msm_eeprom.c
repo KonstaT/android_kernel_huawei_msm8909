@@ -602,6 +602,7 @@ static int msm_eeprom_cmm_dts(struct msm_eeprom_board_info *eb_info,
 	cmm_data->cmm_support =
 		of_property_read_bool(of_node, "qcom,cmm-data-support");
 	if (!cmm_data->cmm_support)
+		pr_err("%s failed %d  qcom,cmm-data-support\n", __func__, __LINE__);
 		return -EINVAL;
 	cmm_data->cmm_compression =
 		of_property_read_bool(of_node, "qcom,cmm-data-compressed");
@@ -1231,7 +1232,6 @@ static int msm_eeprom_i2c_probe(struct i2c_client *client,
 	for (j = 0; j < e_ctrl->cal_data.num_data; j++)
 		CDBG("memory_data[%d] = 0x%X\n", j,
 			e_ctrl->cal_data.mapdata[j]);
-
 	e_ctrl->is_supported |= msm_eeprom_match_crc(&e_ctrl->cal_data);
 
 	rc = msm_camera_power_down(power_info, e_ctrl->eeprom_device_type,

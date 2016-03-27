@@ -1830,6 +1830,9 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	vfe_dev->taskletq_idx = 0;
 	vfe_dev->vt_enable = 0;
 	vfe_dev->bus_util_factor = 0;
+	vfe_dev->fullsize_stats = 0;
+	vfe_dev->stats_hnum = 0;
+	vfe_dev->stats_vnum = 0;
 	rc = of_property_read_u32(vfe_dev->pdev->dev.of_node,
 			"bus-util-factor", &vfe_dev->bus_util_factor);
 	if (rc < 0)

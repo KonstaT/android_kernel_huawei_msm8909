@@ -633,10 +633,36 @@ static void msm_vfe32_process_reg_update(struct vfe_device *vfe_dev,
 	return;
 }
 
+static int msm_vfe32_check_stats_cfg(struct vfe_device *vfe_dev)
+{
+	int ret = 0, rc = 0;
+	int camif_width = 0, camif_height = 0;
+	int hoffset = 0, voffset = 0, width = 0, height = 0;
+
+	rc =  msm_camera_io_r(vfe_dev->vfe_base + 0x1F0);
+	camif_width = ((rc & 0x3FFF) - (rc & 0x3FFF0000)) + 1;
+	rc =  msm_camera_io_r(vfe_dev->vfe_base + 0x1F4);
+	camif_height = ((rc & 0x3FFF) - (rc & 0x3FFF0000)) + 1;
+	hoffset = (0x1FFF & msm_camera_io_r(vfe_dev->vfe_base + 0x700));
+	voffset = (0xFFF & (msm_camera_io_r(vfe_dev->vfe_base + 0x700) >> 16));
+	width = (0x1FF & msm_camera_io_r(vfe_dev->vfe_base + 0x704));
+	height = (0xFF & (msm_camera_io_r(vfe_dev->vfe_base + 0x704) >> 10));
+	if (((hoffset * 2) + (64 * (width + 1))) == camif_width) {
+		if (((voffset * 2) + (48 * (height + 1))) == camif_height)
+			ret = 1;
+	}
+	vfe_dev->stats_vnum =
+		(0x3F & (msm_camera_io_r(vfe_dev->vfe_base + 0x704) >> 26));
+	vfe_dev->stats_hnum =
+		(0x7F & (msm_camera_io_r(vfe_dev->vfe_base + 0x704) >> 19));
+	return ret;
+}
+
 static void msm_vfe32_reg_update(
 	struct vfe_device *vfe_dev)
 {
 	msm_camera_io_w_mb(0xF, vfe_dev->vfe_base + 0x260);
+	vfe_dev->fullsize_stats = msm_vfe32_check_stats_cfg(vfe_dev);
 }
 
 static long msm_vfe32_reset_hardware(struct vfe_device *vfe_dev,

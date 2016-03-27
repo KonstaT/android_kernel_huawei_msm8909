@@ -157,6 +157,11 @@ struct msm_camera_sensor_board_info {
 	const char *misc_regulator;
 	struct msm_camera_power_ctrl_t power_info;
 	struct msm_camera_sensor_slave_info *cam_slave_info;
+// added by yangze for camera hardware info and camera gpio id (ql1001) 2014-06-10 begin
+	const char *sensor_module_info;
+	uint8_t sensor_gpio_id;
+// added by yangze for camera hardware info and camera gpio id (ql1001) 2014-06-10 end 
+	uint8_t power_down_mode; //Add by hanjianfeng for camera power control 20140808
 };
 
 enum msm_camera_i2c_cmd_type {

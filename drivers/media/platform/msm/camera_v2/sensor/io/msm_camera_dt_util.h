@@ -46,6 +46,13 @@ int msm_camera_init_gpio_pin_tbl(struct device_node *of_node,
 int msm_camera_get_dt_vreg_data(struct device_node *of_node,
 	struct camera_vreg_t **cam_vreg, int *num_vreg);
 
+int msm_camera_enable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf);
+int msm_camera_disable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf);
+int msm_camera_pinctrl_init(struct msm_camera_power_ctrl_t *ctrl);
+struct msm_sensor_power_setting*
+msm_camera_get_power_settings(struct msm_camera_power_ctrl_t *ctrl,
+	enum msm_sensor_power_seq_type_t seq_type,
+	uint16_t seq_val);
 int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 	enum msm_camera_device_type_t device_type,
 	struct msm_camera_i2c_client *sensor_i2c_client);

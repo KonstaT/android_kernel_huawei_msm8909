@@ -35,6 +35,8 @@
 #define MSM_CAMERA_STREAM_CNT_BITS  32
 
 #define CAMERA_DISABLE_PC_LATENCY 100
+/*add qcom patch for display blue screen*/
+#define CAMERA_DISABLE_PC_LATENCY_2 1000
 #define CAMERA_ENABLE_PC_LATENCY PM_QOS_DEFAULT_VALUE
 
 struct msm_video_device {

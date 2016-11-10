@@ -76,6 +76,7 @@
 #endif
 #include "f_ncm.c"
 #include "f_charger.c"
+int yep_mass_flag = 0;// added by Devine for usb mass_storage sd-card flag ql_1000 2014/2/8
 
 MODULE_AUTHOR("Mike Lockwood");
 MODULE_DESCRIPTION("Android Composite USB Driver");
@@ -2414,7 +2415,8 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		pr_err("Memory allocation failed.\n");
 		return -ENOMEM;
 	}
-
+//deleted by litao 20140721 begin
+/*
 	config->fsg.nluns = 1;
 	snprintf(name[0], MAX_LUN_NAME, "lun");
 	config->fsg.luns[0].removable = 1;
@@ -2426,7 +2428,22 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		snprintf(name[config->fsg.nluns], MAX_LUN_NAME, "rom");
 		config->fsg.nluns++;
 	}
-
+*/
+//deleted by litao 20140721 end
+//added by litao 20140721 begin
+    	config->fsg.nluns = 0;
+	snprintf(name[1], MAX_LUN_NAME, "lun");
+	config->fsg.luns[1].removable = 1;
+    config->fsg.luns[1].nofua = 1; // Added by yanwenlong for usb speed. (general) 2014-6-3
+ 
+	if (dev->pdata && dev->pdata->cdrom) {
+		config->fsg.luns[config->fsg.nluns].cdrom = 1;
+		config->fsg.luns[config->fsg.nluns].ro = 1;
+		config->fsg.luns[config->fsg.nluns].removable = 0;
+		snprintf(name[config->fsg.nluns], MAX_LUN_NAME, "rom");
+	}
+	config->fsg.nluns = 2;
+//added by litao 20140721 end
 	if (uicc_nluns > FSG_MAX_LUNS - config->fsg.nluns) {
 		uicc_nluns = FSG_MAX_LUNS - config->fsg.nluns;
 		pr_debug("limiting uicc luns to %d\n", uicc_nluns);
@@ -2436,6 +2453,7 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		n = config->fsg.nluns;
 		snprintf(name[n], MAX_LUN_NAME, "uicc%d", i);
 		config->fsg.luns[n].removable = 1;
+        config->fsg.luns[n].nofua = 1; // Added by yanwenlong for usb speed. (general) 2014-6-3
 		config->fsg.nluns++;
 	}
 
@@ -3108,6 +3126,23 @@ functions_store(struct device *pdev, struct device_attribute *attr,
 	}
 
 	strlcpy(buf, buff, sizeof(buf));
+	/*added by Devine for usb mass_storage sd-card flag ql_1000 2014/2/8 */
+	if(!strcmp(buf, "mass_storage,diag,serial") || !strcmp(buf, "mass_storage,diag,serial,adb"))
+	    {
+	          yep_mass_flag = 1;
+	    }
+	else if(!strcmp(buf, "mass_storage") || !strcmp(buf, "mass_storage,adb"))
+	{
+		   yep_mass_flag = 2;
+	}
+	else
+	{
+		   yep_mass_flag = 0;
+	}
+	/*added by Devine for usb mass_storage sd-card flag ql_1000 2014/2/8 */
+//Added by Devine Modification for MTP MSFT OS Descriptor
+	(void)mtp_read_usb_functions(buf);
+//Added by Devine Modification for MTP MSFT OS Descriptor
 	b = strim(buf);
 
 	dev->cdev->gadget->streaming_enabled = false;
@@ -3487,9 +3522,17 @@ static int android_bind(struct usb_composite_dev *cdev)
 	device_desc.iProduct = id;
 
 	/* Default strings - should be updated by userspace */
-	strlcpy(manufacturer_string, "Android",
+//modify by litao for huawei product display 2015-03-14 begin
+	strlcpy(manufacturer_string, "Huawei Incorporated",
 		sizeof(manufacturer_string) - 1);
-	strlcpy(product_string, "Android", sizeof(product_string) - 1);
+#if defined(CONFIG_Y560_L01_BASE)|| defined(CONFIG_Y560_L02_BASE)
+	strlcpy(product_string, "Huawei-LTE Handset", sizeof(product_string) - 1);
+#elif defined(CONFIG_Y560_U23_BASE)
+	strlcpy(product_string, "Huawei-WCDMA Handset", sizeof(product_string) - 1);
+#else
+	strlcpy(product_string, "Android Handset", sizeof(product_string) - 1);
+#endif
+//modify by litao for huawei product display 2015-03-14 end
 	strlcpy(serial_string, "0123456789ABCDEF", sizeof(serial_string) - 1);
 
 	id = usb_string_id(cdev);

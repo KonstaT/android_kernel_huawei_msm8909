@@ -355,6 +355,32 @@ struct fsg_dev {
 	struct usb_ep		*bulk_out;
 };
 
+//added by litao for support mac os begin
+#ifdef CONFIG_HUAWEI_USB
+/* READ_TOC command structure */
+typedef struct _usbsdms_read_toc_cmd_type
+{
+   u8  op_code;  
+   u8  msf;             /* bit1 is MSF, 0: address format is LBA form
+                                        1: address format is MSF form */
+   u8  format;          /* bit3~bit0,   MSF Field   Track/Session Number
+                           0000b:       Valid       Valid as a Track Number
+                           0001b:       Valid       Ignored by Drive
+                           0010b:       Ignored     Valid as a Session Number
+                           0011b~0101b: Ignored     Ignored by Drive
+                           0110b~1111b: Reserved
+                        */
+   u8  reserved1;  
+   u8  reserved2;  
+   u8  reserved3;  
+   u8  session_num;     /* a specific session or a track */
+   u8  allocation_length_msb;
+   u8  allocation_length_lsb;
+   u8  control;
+} usbsdms_read_toc_cmd_type;
+#endif
+//added by litao for support mac os end
+
 static inline int __fsg_is_set(struct fsg_common *common,
 			       const char *func, unsigned line)
 {
@@ -508,6 +534,8 @@ static void bulk_out_complete(struct usb_ep *ep, struct usb_request *req)
 	spin_unlock(&common->lock);
 }
 
+extern int yep_mass_flag; /*added by Devine for usb mass_storage sd-card flag ql_1000 2014/2/8*/
+
 static int fsg_setup(struct usb_function *f,
 		     const struct usb_ctrlrequest *ctrl)
 {
@@ -554,7 +582,21 @@ static int fsg_setup(struct usb_function *f,
 				w_length != 1)
 			return -EDOM;
 		VDBG(fsg, "get max LUN\n");
+		printk(KERN_ERR"fsg_setup___ fsg->common->nluns:%d\n", fsg->common->nluns);
+		/*added by Devine for usb mass_storage sd-card flag ql_1000 2014/2/8*/
+		if(yep_mass_flag == 1)
+		{
+		*(u8 *)req->buf = fsg->common->nluns - 2;
+		}
+		else if(yep_mass_flag == 2)
+		{
 		*(u8 *)req->buf = fsg->common->nluns - 1;
+		}
+		else
+		{
+		*(u8 *)req->buf = fsg->common->nluns - 0;
+		}			
+		/*added by Devine for usb mass_storage sd-card flag ql_1000 2014/2/8*/
 
 		/* Respond with data/status */
 		req->length = min((u16)1, w_length);
@@ -1307,6 +1349,8 @@ static int do_read_header(struct fsg_common *common, struct fsg_buffhd *bh)
 	return 8;
 }
 
+//added by litao for support mac os begin
+#ifndef CONFIG_HUAWEI_USB
 static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 {
 	struct fsg_lun	*curlun = common->curlun;
@@ -1333,6 +1377,119 @@ static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 	store_cdrom_address(&buf[16], msf, curlun->num_sectors);
 	return 20;
 }
+#else
+/* usbsdms_read_toc_data1 rsp packet */
+static u8 usbsdms_read_toc_data1[] = 
+{
+    0x00,0x0A,0x01,0x01,
+    0x00,0x14,0x01,0x00,0x00,0x00,0x02,0x00
+};
+
+/* usbsdms_read_toc_data1_format0000 rsp packet */
+static  u8 usbsdms_read_toc_data1_format0000[] = 
+{
+    0x00,0x12,0x01,0x01,
+    0x00,0x14,0x01,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x14,0xAA,0x00,0x00,0x00,0xFF,0xFF /* the last four bytes:32MB */
+};
+
+/* usbsdms_read_toc_data1_format0001 rsp packet */
+static u8 usbsdms_read_toc_data1_format0001[] = 
+{
+    0x00,0x0A,0x01,0x01,
+    0x00,0x14,0x01,0x00,0x00,0x00,0x00,0x00
+};
+
+/* usbsdms_read_toc_data2 rsp packet */
+static u8 usbsdms_read_toc_data2[] = 
+{
+    0x00,0x2e,0x01,0x01,
+    0x01,0x14,0x00,0xa0,0x00,0x00,0x00,0x00,0x01,0x00,0x00,
+    0x01,0x14,0x00,0xa1,0x00,0x00,0x00,0x00,0x01,0x00,0x00,
+    0x01,0x14,0x00,0xa2,0x00,0x00,0x00,0x00,0x06,0x00,0x3c,
+                                         /* ^ CDROM size from this byte */
+    0x01,0x14,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x02,0x00
+};
+
+/* usbsdms_read_toc_data3 rsp packet */
+static u8 usbsdms_read_toc_data3[] = 
+{
+    0x00,0x12,0x01,0x01,
+    0x00,0x14,0x01,0x00,0x00,0x00,0x02,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+};
+
+/* ------------------------------------------------------------
+ * function      : static int do_read_toc(struct fsg_dev *fsg, struct fsg_buffhd *bh)
+ * description   : response for command READ TOC
+ * input         : struct fsg_dev *fsg, struct fsg_buffhd *bh
+ * output        : none
+ * return        : response data length
+ * -------------------------------------------------------------
+ */
+static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
+{
+    u8    *buf = (u8 *) bh->buf;
+    usbsdms_read_toc_cmd_type *read_toc_cmd = NULL;
+    unsigned long response_length = 0;
+    u8 *response_ptr = NULL;
+
+    read_toc_cmd = (usbsdms_read_toc_cmd_type *)common->cmnd;
+        
+    /* When TIME is set to one, the address fields in some returned 
+     * data formats shall be in TIME form. 
+	 * 2 is time form mask.
+     */
+    if ( 2 == read_toc_cmd->msf )
+    {
+        response_ptr = usbsdms_read_toc_data2;
+        response_length = sizeof(usbsdms_read_toc_data2);
+    }
+    else if(0 != read_toc_cmd->allocation_length_msb)
+    {
+        response_ptr = usbsdms_read_toc_data3;
+        response_length = sizeof(usbsdms_read_toc_data3);
+    }
+    else
+    {
+        /* When TIME is set to zero, the address fields in some returned 
+         * data formats shall be in LBA form. 
+         */
+        if(0 == read_toc_cmd->format)
+        {
+            /* 0 is mean to valid as a Track Number */
+            response_ptr = usbsdms_read_toc_data1_format0000;
+            response_length = sizeof(usbsdms_read_toc_data1_format0000);
+        }
+        else if(1 == read_toc_cmd->format)
+        {
+            /* 1 is mean to ignored by Logical Unit */
+            response_ptr = usbsdms_read_toc_data1_format0001;
+            response_length = sizeof(usbsdms_read_toc_data1_format0001);
+        }
+        else
+        {
+            /* Valid as a Session Number */
+            response_ptr = usbsdms_read_toc_data1;
+            response_length = sizeof(usbsdms_read_toc_data1);
+        }
+    }
+
+    memcpy(buf, response_ptr, response_length);
+
+    if(response_length < common->data_size_from_cmnd)
+    {
+        common->data_size_from_cmnd =response_length;
+    }
+
+    common->data_size = common->data_size_from_cmnd;
+    
+    common->residue = common->usb_amount_left = common->data_size;
+    
+    return response_length;
+}
+#endif
+//added by litao for support mac os end
 
 static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 {
@@ -1381,6 +1538,10 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 	 * The mode pages, in numerical order.  The only page we support
 	 * is the Caching page.
 	 */
+
+//added by litao for support mac os begin
+    /* to support multiple disks */
+#ifndef CONFIG_HUAWEI_USB
 	if (page_code == 0x08 || all_pages) {
 		valid_page = 1;
 		buf[0] = 0x08;		/* Page code */
@@ -1401,6 +1562,10 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 		}
 		buf += 12;
 	}
+#else
+	valid_page=1;
+#endif
+//added by litao for support mac os end
 
 	/*
 	 * Check that a valid page was requested and the mode data length
@@ -2090,7 +2255,14 @@ static int do_scsi_command(struct fsg_common *common)
 		common->data_size_from_cmnd =
 			get_unaligned_be16(&common->cmnd[7]);
 		reply = check_command(common, 10, DATA_DIR_TO_HOST,
+//added by litao for support mac os begin
+                      /* to support cdrom in mac system */
+#ifndef CONFIG_HUAWEI_USB
 				      (7<<6) | (1<<1), 1,
+#else
+				      (3<<1) | (7<<7), 1,
+#endif
+//added by litao for support mac os end
 				      "READ TOC");
 		if (reply == 0)
 			reply = do_read_toc(common, bh);

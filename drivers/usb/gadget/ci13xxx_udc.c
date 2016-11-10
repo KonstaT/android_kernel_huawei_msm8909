@@ -2515,7 +2515,7 @@ __acquires(udc->lock)
 
 	/*stop charging upon reset */
 	if (udc->transceiver)
-		usb_phy_set_power(udc->transceiver, 100);
+		usb_phy_set_power(udc->transceiver, 500);/* Modify by lichuangchuang for nonstandard charger charg (8909) SW00125244 20150515 */
 
 	retval = _gadget_stop_activity(&udc->gadget);
 	if (retval)

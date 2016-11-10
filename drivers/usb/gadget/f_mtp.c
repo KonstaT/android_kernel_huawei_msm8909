@@ -116,6 +116,11 @@ struct mtp_dev {
 	uint16_t xfer_command;
 	uint32_t xfer_transaction_id;
 	int xfer_result;
+//Added by Devine Modification for MTP MSFT OS Descriptor
+	char	usb_functions[32];
+	int		curr_mtp_func_index;
+	int		usb_functions_no;
+//Added by Devine Modification for MTP MSFT OS Descriptor
 };
 
 static struct usb_interface_descriptor mtp_interface_desc = {
@@ -302,6 +307,59 @@ static u8 mtp_os_string[] = {
 	/* padding */
 	0
 };
+//Added by Devine Modification for MTP MSFT OS Descriptor
+/* Microsoft Extended Property OS Feature Descriptor Header Section */
+struct mtp_ext_prop_desc_header {
+	__le32	dwLength;
+	__u16	bcdVersion;
+	__le16	wIndex;
+	__u16	wCount;
+};
+
+/* Microsoft xtended Property OS Feature Function Section */
+struct mtp_ext_prop_desc_property {
+	__le32	dwSize;
+	__le32	dwPropertyDataType;
+	__le16	wPropertyNameLength;
+	__u8	bPropertyName[8];		//MTP
+	__le32	dwPropertyDataLength;
+	__u8	bPropertyData[22];		//MTP Device
+}mtp_ext_prop_desc_property;
+
+/* MTP Extended Configuration Descriptor */
+struct {
+	struct mtp_ext_prop_desc_header	header;
+	struct mtp_ext_prop_desc_property customProp;
+} mtp_ext_prop_desc = {
+	.header = {
+		.dwLength = __constant_cpu_to_le32(sizeof(mtp_ext_prop_desc)),
+		.bcdVersion = __constant_cpu_to_le16(0x0100),
+		.wIndex = __constant_cpu_to_le16(5),
+		.wCount = __constant_cpu_to_le16(1),
+	},
+	.customProp = {
+		.dwSize = __constant_cpu_to_le32(sizeof(mtp_ext_prop_desc_property)),
+		.dwPropertyDataType = __constant_cpu_to_le32(1),
+		.wPropertyNameLength = __constant_cpu_to_le16(8),
+		.bPropertyName = {'M', 0, 'T', 0, 'P', 0, 0, 0},		//MTP
+		.dwPropertyDataLength = __constant_cpu_to_le32(22),
+		.bPropertyData = {'M', 0, 'T', 0, 'P', 0, ' ', 0, 'D', 0, 'e', 0, 'v', 0, 'i', 0, 'c', 0, 'e', 0, 0, 0},		//MTP Device
+	},
+};
+
+#define MSFT_bMS_VENDOR_CODE	1
+#define USB_MTP_FUNCTIONS		6
+
+#define FUNCTION_MTP			"mtp"
+#define FUNCTION_MTP_ADB		"mtp,adb"
+   
+enum {
+	USB_MTP,
+	USB_MTP_ADB,
+	USB_OTHER=0xff
+}mtp_function_type;
+
+//Added by Devine Modification for MTP MSFT OS Descriptor
 
 /* Microsoft Extended Configuration Descriptor Header Section */
 struct mtp_ext_config_desc_header {
@@ -339,6 +397,78 @@ struct {
 	},
 };
 
+//Added by Devine Modification for MTP MSFT OS Descriptor
+struct {
+	struct mtp_ext_config_desc_header	header;
+	struct mtp_ext_config_desc_function    function1;
+	struct mtp_ext_config_desc_function    function2;
+} mtp_ext_config_desc_2 = {
+	.header = {
+		.dwLength = __constant_cpu_to_le32(sizeof(mtp_ext_config_desc_2)),
+		.bcdVersion = __constant_cpu_to_le16(0x0100),
+		.wIndex = __constant_cpu_to_le16(4),
+		//.bCount = __constant_cpu_to_le16(1),
+		.bCount = 0x02,
+		.reserved = { 0 },
+	},
+	.function1 =
+	{
+	.bFirstInterfaceNumber = 0,
+	.bInterfaceCount = 1,
+	.compatibleID = { 'M', 'T', 'P', 0, 0, 0, 0, 0 },
+	.subCompatibleID = { 0 },
+	.reserved = { 0 },
+	},
+	.function2 =
+	{
+	.bFirstInterfaceNumber = 1,
+	.bInterfaceCount = 1,
+	.compatibleID = { 0 },
+	.subCompatibleID = { 0 },
+	.reserved = { 0 },
+	},
+};
+struct {
+	struct mtp_ext_config_desc_header	header;
+	struct mtp_ext_config_desc_function    function1;
+	struct mtp_ext_config_desc_function    function2;
+	struct mtp_ext_config_desc_function    function3;
+} mtp_ext_config_desc_3 = {
+	.header = {
+		.dwLength = __constant_cpu_to_le32(sizeof(mtp_ext_config_desc_3)),
+		.bcdVersion = __constant_cpu_to_le16(0x0100),
+		.wIndex = __constant_cpu_to_le16(4),
+		//.bCount = __constant_cpu_to_le16(1),
+		.bCount = 0x03,
+		.reserved = { 0 },
+	},
+	.function1 =
+	{
+	.bFirstInterfaceNumber = 0,
+	.bInterfaceCount = 1,
+	.compatibleID = { 'M', 'T', 'P', 0, 0, 0, 0, 0 },
+	.subCompatibleID = { 0 },
+	.reserved = { 0 },
+	},
+	.function2 =
+	{
+	.bFirstInterfaceNumber = 1,
+	.bInterfaceCount = 1,
+	.compatibleID = { 0 },
+	.subCompatibleID = { 0 },
+	.reserved = { 0 },
+	},
+	.function3 =
+	{
+	.bFirstInterfaceNumber = 2,
+	.bInterfaceCount = 1,
+	.compatibleID = { 0 },
+	.subCompatibleID = { 0 },
+	.reserved = { 0 },
+	},
+};
+
+//Added by Devine Modification for MTP MSFT OS Descriptor
 struct mtp_device_status {
 	__le16	wLength;
 	__le16	wCode;
@@ -1206,6 +1336,23 @@ static struct miscdevice mtp_device = {
 	.fops = &mtp_fops,
 };
 
+//Added by Devine Modification for MTP MSFT OS Descriptor
+static void mtp_read_usb_functions(char * buff)
+{
+	struct mtp_dev *dev = _mtp_dev;
+
+	 printk( KERN_ERR "F_MTP: buff = %s\n", buff);
+	if(!strcmp(buff,FUNCTION_MTP_ADB))
+           {
+		     dev->curr_mtp_func_index = USB_MTP_ADB;			
+	    }
+	else
+	    {
+                   dev->curr_mtp_func_index = USB_MTP;
+	    }
+	 printk( KERN_ERR "F_MTP: curr_mtp_func_index = %d\n", dev->curr_mtp_func_index);
+}
+//Added by Devine Modification for MTP MSFT OS Descriptor
 static int mtp_ctrlrequest(struct usb_composite_dev *cdev,
 				const struct usb_ctrlrequest *ctrl)
 {
@@ -1234,7 +1381,9 @@ static int mtp_ctrlrequest(struct usb_composite_dev *cdev,
 		/* Handle MTP OS descriptor */
 		DBG(cdev, "vendor request: %d index: %d value: %d length: %d\n",
 			ctrl->bRequest, w_index, w_value, w_length);
-
+		//Added by Devine Modification for MTP MSFT OS Descriptor
+                #if 0
+		//Added by Devine Modification for MTP MSFT OS Descriptor
 		if (ctrl->bRequest == 1
 				&& (ctrl->bRequestType & USB_DIR_IN)
 				&& (w_index == 4 || w_index == 5)) {
@@ -1242,6 +1391,43 @@ static int mtp_ctrlrequest(struct usb_composite_dev *cdev,
 					w_length : sizeof(mtp_ext_config_desc));
 			memcpy(cdev->req->buf, &mtp_ext_config_desc, value);
 		}
+		//Added by Devine Modification for MTP MSFT OS Descriptor
+                #endif
+		if (ctrl->bRequest == 1
+				&& (ctrl->bRequestType & USB_DIR_IN)
+				&& (w_index == 5)) {
+			value = (w_length < sizeof(mtp_ext_prop_desc) ?
+					w_length : sizeof(mtp_ext_prop_desc));
+			DBG(cdev, "vendor request: Property OS Feature, w_length = %d, value = %d \n", w_length, value);
+			memcpy(cdev->req->buf, &mtp_ext_prop_desc, value);
+		}
+		else if (ctrl->bRequest == 1
+				&& (ctrl->bRequestType & USB_DIR_IN)
+				&& (w_index == 4)) {
+
+			switch(dev->curr_mtp_func_index)
+			{
+			case USB_MTP:		//mtp
+				value = (w_length < sizeof(mtp_ext_config_desc) ?
+						w_length : sizeof(mtp_ext_config_desc));
+				memcpy(cdev->req->buf, &mtp_ext_config_desc, value);
+				break;
+			case USB_MTP_ADB:    //mtp,adb
+				value = (w_length < sizeof(mtp_ext_config_desc_2) ?
+						w_length : sizeof(mtp_ext_config_desc_2));
+				memcpy(cdev->req->buf, &mtp_ext_config_desc_2, value);
+				break;
+			default:			//unknown, 0xff
+				value = (w_length < sizeof(mtp_ext_config_desc) ?
+						w_length : sizeof(mtp_ext_config_desc));
+				memcpy(cdev->req->buf, &mtp_ext_config_desc, value);
+				break;
+			}
+
+			//xlog_printk(ANDROID_LOG_INFO, "USB", "vendor request: Compat ID OS Feature, dev->curr_mtp_func_index = %d, dev->usb_functions = %s \n", dev->curr_mtp_func_index, dev->usb_functions);
+			//xlog_printk(ANDROID_LOG_INFO, "USB", "vendor request: Extended OS Feature, w_length = %d, value = %d, dev->curr_mtp_func_index = %d\n", w_length, value, dev->curr_mtp_func_index);
+		}
+		//Added by Devine Modification for MTP MSFT OS Descriptor
 	} else if ((ctrl->bRequestType & USB_TYPE_MASK) == USB_TYPE_CLASS) {
 		DBG(cdev, "class request: %d index: %d value: %d length: %d\n",
 			ctrl->bRequest, w_index, w_value, w_length);

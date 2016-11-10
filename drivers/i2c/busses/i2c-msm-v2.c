@@ -43,7 +43,7 @@ static const enum msm_i2_debug_level DEFAULT_DBG_LVL = MSM_DBG;
 #else
 static const enum msm_i2_debug_level DEFAULT_DBG_LVL = MSM_ERR;
 #endif
-
+int yep_i2c_err_flag=0;
 /* Forward declarations */
 static bool i2c_msm_xfer_next_buf(struct i2c_msm_ctrl *ctrl);
 static int i2c_msm_xfer_wait_for_completion(struct i2c_msm_ctrl *ctrl,
@@ -1933,6 +1933,13 @@ static int qup_i2c_try_recover_bus_busy(struct i2c_msm_ctrl *ctrl)
 	i2c_msm_qup_xfer_init_run_state(ctrl);
 
 	writel_relaxed(0x1, ctrl->rsrcs.base + QUP_I2C_MASTER_BUS_CLR);
+       //add by yanfei for sensor crash 20150604 begin
+	if(ctrl->xfer.msgs->addr==0x1e)
+	{
+		usleep_range(5, 10);
+		writel_relaxed(0x0, ctrl->rsrcs.base + QUP_I2C_MASTER_BUS_CLR);
+	}
+       //add by yanfei for sensor crash 20150604 end
 
 	/*
 	 * wait for recovery (9 clock pulse cycles) to complete.
@@ -1961,7 +1968,7 @@ static int qup_i2c_recover_bus_busy(struct i2c_msm_ctrl *ctrl)
 		if (++retry >= I2C_QUP_MAX_BUS_RECOVERY_RETRY)
 			break;
 	} while (bus_clr || bus_active);
-
+       yep_i2c_err_flag =1;
 	dev_info(ctrl->dev, "Bus recovery %s after %d retries\n",
 		(bus_clr || bus_active) ? "fail" : "success", retry);
 	return 0;

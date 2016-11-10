@@ -48,17 +48,22 @@
 #include <sys/types.h>
 #include <string.h>
 #endif
-
+//add by yanfei for sensor hardware information
+#ifdef CONFIG_GET_HARDWARE_INFO
+#include <mach/hardware_info.h>
+#endif
 #include "bstclass.h"
 
 #define ACC_NAME  "ACC"
-#define BMA2X2_ENABLE_INT1
+/*del by litao*/
+//#define BMA2X2_ENABLE_INT1
 
 #ifdef ENABLE_ISR_DEBUG_MSG
 #define ISR_INFO(dev, fmt, arg...) dev_info(dev, fmt, ##arg)
 #else
 #define ISR_INFO(dev, fmt, arg...)
 #endif
+
 
 #define BMA2X2_SENSOR_IDENTIFICATION_ENABLE
 
@@ -1399,6 +1404,7 @@ static const struct interrupt_map_t int_map[] = {
 #define MAX_RANGE_MAP	4
 
 #define BMA_CAL_BUF_SIZE	99
+
 
 struct bma2x2_type_map_t {
 
@@ -5347,7 +5353,7 @@ static void bma2x2_set_enable(struct device *dev, int enable)
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma2x2_data *bma2x2 = i2c_get_clientdata(client);
 	int pre_enable = atomic_read(&bma2x2->enable);
-
+	pr_info("%s enable = %d\n", __func__, enable);
 	if (atomic_read(&bma2x2->cal_status)) {
 		dev_err(dev, "can not enable or disable when calibration\n");
 		return;
@@ -5470,6 +5476,7 @@ static int bma2x2_cdev_poll_delay(struct sensors_classdev *sensors_cdev,
 	struct bma2x2_data *data = container_of(sensors_cdev,
 					struct bma2x2_data, cdev);
 
+	pr_info("%s delay_ms = %d\n", __func__, delay_ms);
 	if (delay_ms < POLL_INTERVAL_MIN_MS)
 		delay_ms = POLL_INTERVAL_MIN_MS;
 	if (delay_ms > POLL_INTERVAL_MAX_MS)
@@ -5668,7 +5675,6 @@ exit:
 	atomic_set(&data->cal_status, 0);
 	if (pre_enable)
 		bma2x2_set_enable(&client->dev, 1);
-
 	return error;
 }
 
@@ -7558,7 +7564,8 @@ static void bma2x2_pinctrl_state(struct bma2x2_data *data,
 	}
 	dev_dbg(&dev, "Select pinctrl state=%d\n", active);
 }
-
+//add by yanfei for hardware information 20150319
+static  struct of_device_id bma2x2_of_match[] ;
 static int bma2x2_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
@@ -7646,6 +7653,7 @@ static int bma2x2_probe(struct i2c_client *client,
 		err = -EINVAL;
 		goto disable_power_exit;
 	}
+
 
 	if (pdata->int_en) {
 		/* check interrupt feature enable state */
@@ -7912,7 +7920,10 @@ static int bma2x2_probe(struct i2c_client *client,
 		err = -EINVAL;
 		goto remove_bst_acc_sysfs_exit;
 	}
-
+ //add by yanfei for sensor hardware information 20150107 begin
+#ifdef CONFIG_GET_HARDWARE_INFO
+	register_hardware_info(GSENSOR, bma2x2_of_match[0].compatible);
+#endif
 	dev_notice(&client->dev, "BMA2x2 driver probe successfully");
 
 	bma2x2_pinctrl_state(data, false);
@@ -8107,7 +8118,7 @@ static const struct i2c_device_id bma2x2_id[] = {
 
 MODULE_DEVICE_TABLE(i2c, bma2x2_id);
 
-static const struct of_device_id bma2x2_of_match[] = {
+static  struct of_device_id bma2x2_of_match[] = {
 	{ .compatible = "bosch,bma2x2", },
 	{ },
 };
@@ -8142,4 +8153,3 @@ MODULE_LICENSE("GPL v2");
 
 module_init(BMA2X2_init);
 module_exit(BMA2X2_exit);
-

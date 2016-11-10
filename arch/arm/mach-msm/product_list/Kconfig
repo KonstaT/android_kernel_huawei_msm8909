@@ -1,0 +1,35 @@
+#
+#     date      	author      	why
+#  2015.01.10     litao2		add y560 product
+#
+
+#
+# YEP_product_list
+#  
+#========================================================
+#==========y560 CONFIG BEGIN===========================
+config Y560_U23_BASE
+	depends on ARCH_MSM8909
+	bool "Y560_U23_BASE version"
+	help
+	  Fix version type as Y560_U23_BASE.
+	  
+config Y560_L01_BASE
+	depends on ARCH_MSM8909
+	bool "Y560_L01_BASE version"
+	help
+	  Fix version type as Y560_L01_BASE.
+	  
+config Y560_L02_BASE
+	depends on ARCH_MSM8909
+	bool "Y560_L02_BASE version"
+	help
+	  Fix version type as Y560_L02_BASE.
+	  
+config HUAWEI_USB
+	depends on ARCH_MSM8909
+	bool "HUAWEI_USB version"
+	help
+	  Fix version type as HUAWEI_USB.
+	  
+#==========y560 CONFIG end===========================

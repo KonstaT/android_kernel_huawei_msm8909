@@ -1050,4 +1050,7 @@ config FSM9900_GSM_NL
 	  The serial port connection can be established to communicate with the
 	  GSM NL module.
 
+#added by litao begin
+source "arch/arm/mach-msm/product_list/Kconfig"
+#added by litao end
 endif

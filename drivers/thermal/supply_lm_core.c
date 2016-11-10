@@ -1587,7 +1587,7 @@ static int supply_lm_therm_device_init(struct platform_device *pdev,
 		}
 	}
 
-	ret = sensor_mgr_init_threshold(&pdev->dev,
+	ret = sensor_mgr_init_threshold(
 				&supply_lm_therm_thresh[THERM_HOT - 1],
 				MONITOR_ALL_TSENS,
 				supply_lm_data->hot_temp_degC,
@@ -1600,7 +1600,7 @@ static int supply_lm_therm_device_init(struct platform_device *pdev,
 		goto therm_exit;
 	}
 
-	ret = sensor_mgr_init_threshold(&pdev->dev,
+	ret = sensor_mgr_init_threshold(
 				&supply_lm_therm_thresh[THERM_VERY_HOT - 1],
 				MONITOR_ALL_TSENS,
 				supply_lm_data->very_hot_temp_degC,
@@ -1668,9 +1668,9 @@ static void supply_lm_therm_cleanup(struct platform_device *pdev,
 		return;
 
 	if (supply_lm_therm_thresh) {
-		sensor_mgr_remove_threshold(&pdev->dev,
+		sensor_mgr_remove_threshold(
 			&supply_lm_therm_thresh[THERM_VERY_HOT - 1]);
-		sensor_mgr_remove_threshold(&pdev->dev,
+		sensor_mgr_remove_threshold(
 			&supply_lm_therm_thresh[THERM_HOT - 1]);
 		devm_kfree(&pdev->dev, supply_lm_therm_thresh);
 		supply_lm_therm_thresh = NULL;

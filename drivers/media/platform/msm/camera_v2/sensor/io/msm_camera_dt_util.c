@@ -1033,7 +1033,28 @@ int msm_camera_init_gpio_pin_tbl(struct device_node *of_node,
 	} else {
 		rc = 0;
 	}
-
+	// added byyangze to add check pin value of camera id  (ql1001) 2014-06-10 begin
+	rc = of_property_read_u32(of_node, "qcom,gpio-cameraid", &val);
+	if (rc != -EINVAL) {
+		if (rc < 0) {
+			pr_err("%s:%d read qcom,gpio-cameraid failed rc %d\n",
+				__func__, __LINE__, rc);
+			goto ERROR;
+		} else if (val >= gpio_array_size) {
+			pr_err("%s:%d qcom,qcom,gpio-cameraid invalid %d\n",
+				__func__, __LINE__, val);
+			rc = -EINVAL;
+			goto ERROR;
+		}
+		gconf->gpio_num_info->gpio_num[SENSOR_GPIO_ID] =
+			gpio_array[val];
+		gconf->gpio_num_info->valid[SENSOR_GPIO_ID] = 1;
+		CDBG("%s qcom,gpio-cameraid %d\n", __func__,
+			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_ID]);
+	} else {
+		rc = 0;
+	}
+	// added byyangze to add check pin value of camera id  (ql1001) 2014-06-10 end
 	return rc;
 
 ERROR:
@@ -1049,7 +1070,7 @@ int msm_camera_get_dt_vreg_data(struct device_node *of_node,
 	uint32_t count = 0;
 	uint32_t *vreg_array = NULL;
 	struct camera_vreg_t *vreg = NULL;
-	bool custom_vreg_name =  false;
+	//bool custom_vreg_name =  false; //Deleted by hanjianfeng for camera bring up 20150209
 
 	count = of_property_count_strings(of_node, "qcom,cam-vreg-name");
 	CDBG("%s qcom,cam-vreg-name count %d\n", __func__, count);
@@ -1075,7 +1096,8 @@ int msm_camera_get_dt_vreg_data(struct device_node *of_node,
 			goto ERROR1;
 		}
 	}
-
+/*Deleted Begin: by hanjianfeng for camera bringup (QW702) 20150209*/
+#if 0
 	custom_vreg_name = of_property_read_bool(of_node,
 		"qcom,cam-custom-vreg-name");
 	if (custom_vreg_name) {
@@ -1091,7 +1113,8 @@ int msm_camera_get_dt_vreg_data(struct device_node *of_node,
 			}
 		}
 	}
-
+#endif
+/*Deleted End: by hanjianfeng for camera bringup (QW702) 20150209*/
 	vreg_array = kzalloc(sizeof(uint32_t) * count, GFP_KERNEL);
 	if (!vreg_array) {
 		pr_err("%s failed %d\n", __func__, __LINE__);
@@ -1165,7 +1188,8 @@ ERROR1:
 	return rc;
 }
 
-static int msm_camera_enable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf)
+//modified by yangze for camera cts test (qc805) 2014-01-18
+int msm_camera_enable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf)
 {
 	struct v4l2_subdev *i2c_mux_sd =
 		dev_get_drvdata(&i2c_conf->mux_dev->dev);
@@ -1176,7 +1200,8 @@ static int msm_camera_enable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf)
 	return 0;
 }
 
-static int msm_camera_disable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf)
+//modified by yangze for camera cts test (qc805) 2014-01-18
+int msm_camera_disable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf)
 {
 	struct v4l2_subdev *i2c_mux_sd =
 		dev_get_drvdata(&i2c_conf->mux_dev->dev);
@@ -1185,7 +1210,8 @@ static int msm_camera_disable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf)
 	return 0;
 }
 
-static int msm_camera_pinctrl_init(struct msm_camera_power_ctrl_t *ctrl)
+//modified by yangze for camera cts test (qc805) 2014-01-18
+int msm_camera_pinctrl_init(struct msm_camera_power_ctrl_t *ctrl)
 {
 	struct msm_pinctrl_info *sensor_pctrl = NULL;
 
@@ -1413,7 +1439,8 @@ power_up_failed:
 	return rc;
 }
 
-static struct msm_sensor_power_setting*
+//modified by yangze for camera cts test (qc805) 2014-01-18
+struct msm_sensor_power_setting*
 msm_camera_get_power_settings(struct msm_camera_power_ctrl_t *ctrl,
 				enum msm_sensor_power_seq_type_t seq_type,
 				uint16_t seq_val)

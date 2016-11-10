@@ -595,8 +595,10 @@ static int camera_v4l2_open(struct file *filep)
 					__func__, __LINE__, rc);
 			goto post_fail;
 		}
-		/* Enable power collapse latency */
-		msm_pm_qos_update_request(CAMERA_ENABLE_PC_LATENCY);
+		/*add qcom patch for display blue screen by xingbin start */
+		/* Disable power collapse latency 1000*/
+		msm_pm_qos_update_request(CAMERA_DISABLE_PC_LATENCY_2);
+		/*add qcom patch for display blue screen by xingbin end */
 	} else {
 		rc = msm_create_command_ack_q(pvdev->vdev->num,
 			find_first_zero_bit((const unsigned long *)&opn_idx,
@@ -673,7 +675,10 @@ static int camera_v4l2_close(struct file *filep)
 		/* This should take care of both normal close
 		 * and application crashes */
 		msm_destroy_session(pvdev->vdev->num);
-
+/*add qcom patch for display blue screen by xingbin start */
+		/* Enable power collapse latency */
+		msm_pm_qos_update_request(CAMERA_ENABLE_PC_LATENCY);
+/*add qcom patch for display blue screen by xingbin start */
 		pm_relax(&pvdev->vdev->dev);
 	} else {
 		camera_pack_event(filep, MSM_CAMERA_SET_PARM,

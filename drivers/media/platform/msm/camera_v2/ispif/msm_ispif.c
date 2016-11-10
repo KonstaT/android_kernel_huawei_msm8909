@@ -208,10 +208,10 @@ int msm_ispif_get_ahb_clk_info(struct ispif_device *ispif_dev,
 	uint32_t count, num_ahb_clk = 0;
 	int i, rc;
 	uint32_t rates[ISPIF_CLK_INFO_MAX];
-
+	
 	struct device_node *of_node;
 	of_node = pdev->dev.of_node;
-
+	
 	count = of_property_count_strings(of_node, "clock-names");
 
 	CDBG("count = %d\n", count);
@@ -1169,10 +1169,14 @@ static irqreturn_t msm_io_ispif_irq(int irq_num, void *data)
 static int msm_ispif_set_vfe_info(struct ispif_device *ispif,
 	struct msm_ispif_vfe_info *vfe_info)
 {
-	memcpy(&ispif->vfe_info, vfe_info, sizeof(struct msm_ispif_vfe_info));
-	if (ispif->vfe_info.num_vfe > ispif->hw_num_isps)
-		return -EINVAL;
-	return 0;
+        if (!vfe_info || (vfe_info->num_vfe <= 0) ||
+            ((uint32_t)(vfe_info->num_vfe) > ispif->hw_num_isps)) {
+            pr_err("Invalid VFE info: %p %d\n", vfe_info,
+            (vfe_info ? vfe_info->num_vfe:0));
+            return -EINVAL;
+        }
+        memcpy(&ispif->vfe_info, vfe_info, sizeof(struct msm_ispif_vfe_info));
+        return 0;
 }
 
 static int msm_ispif_init(struct ispif_device *ispif,

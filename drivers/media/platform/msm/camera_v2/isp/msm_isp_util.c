@@ -936,7 +936,10 @@ static int msm_isp_send_hw_cmd(struct vfe_device *vfe_dev,
 	case VFE_READ_DMI_16BIT:
 	case VFE_READ_DMI_32BIT:
 	case VFE_READ_DMI_64BIT: {
-		if (reg_cfg_cmd->cmd_type == VFE_WRITE_DMI_64BIT) {
+
+		if (reg_cfg_cmd->cmd_type == VFE_WRITE_DMI_64BIT ||
+		/* added by guoben from Qualcomm Patch ANDROID-28815326,20160909 */
+			reg_cfg_cmd->cmd_type == VFE_READ_DMI_64BIT) {
 			if ((reg_cfg_cmd->u.dmi_info.hi_tbl_offset <=
 				reg_cfg_cmd->u.dmi_info.lo_tbl_offset) ||
 				(reg_cfg_cmd->u.dmi_info.hi_tbl_offset -
@@ -1830,6 +1833,9 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	vfe_dev->taskletq_idx = 0;
 	vfe_dev->vt_enable = 0;
 	vfe_dev->bus_util_factor = 0;
+	vfe_dev->fullsize_stats = 0;
+	vfe_dev->stats_hnum = 0;
+	vfe_dev->stats_vnum = 0;
 	rc = of_property_read_u32(vfe_dev->pdev->dev.of_node,
 			"bus-util-factor", &vfe_dev->bus_util_factor);
 	if (rc < 0)

@@ -65,5 +65,8 @@ endif
 obj-$(CONFIG_QFP_FUSE) += qfp_fuse.o
 obj-$(CONFIG_TI_DRV2667) += ti_drv2667.o
 obj-$(CONFIG_QPNP_MISC) += qpnp-misc.o
+#added by litao begin
+obj-$(CONFIG_GET_HARDWARE_INFO) += hardware_info.o
+#added by litao end
 obj-$(CONFIG_QCOM_LIQUID_DOCK)	+= qcom_liquid_dock.o
 obj-y				+= qcom/

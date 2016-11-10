@@ -166,6 +166,10 @@ static inline s64 timekeeping_get_ns(struct timekeeper *tk)
 
 	/* read clocksource: */
 	clock = tk->clock;
+	//Added by zhaochengliang for add wall time for dmesg (QL100X) SW000000 2014/07/24 begin
+	if (unlikely(clock == NULL))
+		return 0;
+	//Added by zhaochengliang for add wall time for dmesg (QL100X) SW000000 2014/07/24 end
 	cycle_now = clock->read(clock);
 
 	/* calculate the delta since the last update_wall_time: */
@@ -316,6 +320,20 @@ int __getnstimeofday(struct timespec *ts)
 	return 0;
 }
 EXPORT_SYMBOL(__getnstimeofday);
+//Added by zhaochengliang for add wall time for dmesg (QL100X) SW000000 2014/07/24 begin
+void getnstimeofday_nolock(struct timespec *ts)
+{
+	s64 nsecs;
+
+	*ts =  tk_xtime(&timekeeper);
+	nsecs = timekeeping_get_ns(&timekeeper);
+
+	/* If arch requires, add in gettimeoffset() */
+	nsecs += get_arch_timeoffset();
+
+	timespec_add_ns(ts, nsecs);
+}
+//Added by zhaochengliang for add wall time for dmesg  (QL100X) SW000000 2014/07/24 end
 
 /**
  * getnstimeofday - Returns the time of day in a timespec.

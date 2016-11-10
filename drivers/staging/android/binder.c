@@ -1715,11 +1715,12 @@ err_empty_call_stack:
 err_dead_binder:
 err_invalid_target_handle:
 err_no_context_mgr_node:
-	binder_debug(BINDER_DEBUG_FAILED_TRANSACTION,
+//xiognzuan remove log by 20150714 begin
+	/*binder_debug(BINDER_DEBUG_FAILED_TRANSACTION,
 		     "%d:%d transaction failed %d, size %lld-%lld\n",
 		     proc->pid, thread->pid, return_error,
-		     (u64)tr->data_size, (u64)tr->offsets_size);
-
+		     (u64)tr->data_size, (u64)tr->offsets_size);*/
+//xiognzuan remove log by 20150714 end
 	{
 		struct binder_transaction_log_entry *fe;
 		fe = binder_transaction_log_add(&binder_transaction_log_failed);

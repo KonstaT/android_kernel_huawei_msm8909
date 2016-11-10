@@ -12,6 +12,9 @@
 #include <linux/time.h>
 #include "fat.h"
 
+//Add by lichuangchuang for T-card read-only err (8916) SW00106879 2014-12-29
+static bool print_sd_readonly = false;
+
 /*
  * fat_fs_error reports a file system problem that might indicate fa data
  * corruption/inconsistency. Depending on 'errors' mount option the
@@ -37,9 +40,14 @@ void __fat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
 	if (opts->errors == FAT_ERRORS_PANIC)
 		panic("FAT-fs (%s): fs panic from previous error\n", sb->s_id);
 	else if (opts->errors == FAT_ERRORS_RO && !(sb->s_flags & MS_RDONLY)) {
-		sb->s_flags |= MS_RDONLY;
-		printk(KERN_ERR "FAT-fs (%s): Filesystem has been "
+		//Modify by lichuangchuang for T-card read-only err (8916) SW00106879 2014-12-30 start
+		//sb->s_flags |= MS_RDONLY; 
+		if(!print_sd_readonly){
+			printk(KERN_ERR "FAT-fs (%s): Filesystem has been "
 				"set read-only\n", sb->s_id);
+			print_sd_readonly = true;
+		}
+		//Modify by lichuangchuang for T-card read-only err (8916) SW00106879 2014-12-30 end
 	}
 }
 EXPORT_SYMBOL_GPL(__fat_fs_error);

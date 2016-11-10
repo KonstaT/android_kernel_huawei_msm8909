@@ -166,6 +166,8 @@ extern unsigned int alarm_setitimer(unsigned int seconds);
 extern int do_getitimer(int which, struct itimerval *value);
 extern int __getnstimeofday(struct timespec *tv);
 extern void getnstimeofday(struct timespec *tv);
+//Added by zhaochengliang for add wall time for dmesg (QL100X) SW000000 2014/07/24
+extern void getnstimeofday_nolock(struct timespec *tv);
 extern void getrawmonotonic(struct timespec *ts);
 extern void getnstime_raw_and_real(struct timespec *ts_raw,
 		struct timespec *ts_real);

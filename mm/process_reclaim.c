@@ -237,7 +237,10 @@ static int vmpressure_notifier(struct notifier_block *nb,
 
 	if ((pressure >= pressure_min) && (pressure < pressure_max))
 		if (!work_pending(&swap_work))
-			schedule_work(&swap_work);
+			/* modified by zhangrui for UI freeze in monkey test, SW00175613 20151112 begin */
+			//schedule_work(&swap_work);
+			queue_work(system_unbound_wq, &swap_work);
+			/* modified by zhangrui for UI freeze in monkey test, SW00175613 20151112 end   */
 	return 0;
 }
 

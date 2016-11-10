@@ -313,7 +313,7 @@
 	};
 
 	qcom,cpu-bwmon {
-		compatible = "qcom,bimc-bwmon2";
+		compatible = "qcom,bimc-bwmon2";		
 		reg = <0x408000 0x300>, <0x401000 0x200>;
 		reg-names = "base", "global_base";
 		interrupts = <0 183 4>;
@@ -437,16 +437,16 @@
 			qcom,sensor-name = "xo_therm_buf";
 		};
 	};
-
+/*xiongzuan modify for KTM-table by 20150430 begin*/
 	qcom,msm-thermal {
 		compatible = "qcom,msm-thermal";
 		qcom,sensor-id = <3>;
 		qcom,poll-ms = <250>;
-		qcom,limit-temp = <60>;
+		qcom,limit-temp = <80>;
 		qcom,temp-hysteresis = <10>;
 		qcom,freq-step = <2>;
 		qcom,freq-control-mask = <0xf>;
-		qcom,core-limit-temp = <80>;
+		qcom,core-limit-temp = <85>;
 		qcom,core-temp-hysteresis = <10>;
 		qcom,core-control-mask = <0xe>;
 		qcom,hotplug-temp = <97>;
@@ -455,7 +455,7 @@
 				"tsens_tz_sensor3", "tsens_tz_sensor4";
 		qcom,freq-mitigation-temp = <97>;
 		qcom,freq-mitigation-temp-hysteresis = <12>;
-		qcom,freq-mitigation-value = <400000>;
+		qcom,freq-mitigation-value = <800000>;
 		qcom,freq-mitigation-control-mask = <0x01>;
 		qcom,online-hotplug-core;
 		qcom,therm-reset-temp = <115>;
@@ -469,7 +469,7 @@
 			qcom,min-level = <1>; /* No Request */
 		};
 	};
-
+/*xiongzuan modify for KTM-table by 20150430 end*/
 	qcom,supply-lm@1946000 {
 		compatible = "qcom,supply-lm";
 		interrupts = <0 133 4>;
@@ -1019,7 +1019,7 @@
 		clocks = <&clock_gcc clk_gcc_sdcc1_ahb_clk>,
 			 <&clock_gcc clk_gcc_sdcc1_apps_clk>;
 		clock-names = "iface_clk", "core_clk";
-		qcom,clk-rates = <400000 25000000 50000000 100000000 177770000>;
+		qcom,clk-rates = <400000 25000000 50000000 100000000>;/* Modify by lichuangchuang for reduce clk rate(8909) SW00129909 20150417 */
 
 		status = "disabled";
 	};
@@ -1053,7 +1053,7 @@
 			 <&clock_gcc clk_gcc_sdcc2_apps_clk>;
 		clock-names = "iface_clk", "core_clk";
 
-		qcom,clk-rates = <400000 25000000 50000000 100000000 200000000>;
+		qcom,clk-rates = <400000 25000000 50000000 100000000>;/* Modify by lichuangchuang for reduce clk rate(8909) SW00129909 20150417 */
 
 		status = "disabled";
 	};
@@ -1116,7 +1116,7 @@
                       <0x7884000 0x23000>;
                 interrupt-names = "spi_irq", "spi_bam_irq";
                 interrupts = <0 100 0>, <0 238 0>;
-                spi-max-frequency = <19200000>;
+                spi-max-frequency = <19200000>;/*Modify by lichuangchuang for QL702 DTV SPI frequency (QL702) SW00000000 2015-04-25*/
                 pinctrl-names = "spi_default", "spi_sleep";
                 pinctrl-0 = <&spi0_default &spi0_cs0_active>;
                 pinctrl-1 = <&spi0_sleep &spi0_cs0_sleep>;
@@ -1130,7 +1130,29 @@
                 qcom,bam-consumer-pipe-index = <14>;
                 qcom,bam-producer-pipe-index = <15>;
                 qcom,master-id = <86>;
+		
+	/*add by wangtao for qw806 DTV (qw806) SW00000000 2015-04-25 start*/
+		dtv,spi@0 {
+			compatible = "nmi,nmi326";
+			reg = <0>;
+			spi-max-frequency = <5000000>;
+			spi-cpol = <0>;
+			spi-cpha = <0>;
+		};
 	};
+	
+	nmi,nmi326{
+		compatible = "nmi,nmi325_isdbt";
+		pinctrl-names = "dtv_default";
+		pinctrl-0 = <&nmi326_reset_default &nmi326_power_default &nmi326_irq_default>;
+		nmi,reset-gpio = <&msm_gpio 20 0>;
+		nmi,power-enable-gpio = <&msm_gpio 21 0>;
+		nmi,irq-gpio = <&msm_gpio 36 0>;
+		interrupt-parent = <&msm_gpio>;
+		interrupts = <36 0>;
+		interrupt-names = "nmi326_irq";
+	};
+	/*add by wangtao for qw806 DTV (qw806) SW00000000 2015-04-25 end*/
 
 	dma_blsp1: qcom,sps-dma@7884000 { /* BLSP1 */
 		#dma-cells = <4>;

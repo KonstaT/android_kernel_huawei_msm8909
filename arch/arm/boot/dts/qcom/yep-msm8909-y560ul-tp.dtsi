@@ -1,0 +1,70 @@
+/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/*
+ * As a general rule, only version-specific property overrides should be placed
+ * inside this file. However, device definitions should be placed inside the
+ * yep_product_ql1001_flatform.dtsi file.
+ */
+ 
+/*  
+    Date    		Author    	   	Module         Sensor_id     Old_ver   New_ver
+  2014-01-12        litao2          NULL		   0			 
+*/
+
+/*  Date            Author         	 				Why
+   2014-01-12      litao2        		           creat
+*/
+
+&soc {
+	i2c@78b9000 { /* BLSP1 QUP5 */
+		focaltech@38 {
+			compatible = "focaltech,FT5x36";
+			reg = <0x38>;
+			interrupt-parent = <&msm_gpio>;
+			interrupts = <13 0x2>;
+			vdd-supply = <&pm8909_l17>;
+			vcc_i2c-supply = <&pm8909_l6>;
+			/* pins used by touchscreen */
+			pinctrl-names = "pmx_ts_active","pmx_ts_suspend";
+			pinctrl-0 = <&ts_int_active &ts_reset_active>;
+			pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+			focaltech,family-id = <7>;
+			focaltech,max_touch_point = <2>;
+			focaltech,reset-gpio = <&msm_gpio 12 0x00>;
+			focaltech,irq-gpio = <&msm_gpio 13 0x00>;
+			focaltech,display-coords = <0 0 480 854>;
+			focaltech,panel-coords = <0 0 480 854>;
+			focaltech,button-map= <158 172 139>;
+			focaltech,no-force-update;
+			focaltech,i2c-pull-up;
+			focaltech,virtual_key;
+			focaltech,gesture-enable;
+		};
+		
+		ms-msg22xx@26 {
+			compatible = "mstar,msg2xxx";
+			reg = <0x26>;
+			interrupt-parent = <&msm_gpio>;
+			interrupts = <13 0x2>;
+			vdd-supply = <&pm8909_l17>;
+			pinctrl-names = "pmx_ts_active","pmx_ts_suspend";
+			pinctrl-0 = <&ts_int_active &ts_reset_active>;
+			pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+			vcc_i2c-supply = <&pm8909_l6>;
+			mstar,reset-gpio = <&msm_gpio 12 0x00>;
+			mstar,irq-gpio = <&msm_gpio 13 0x00>;
+			mstar,button-map = <158 139 172>;
+			mstar,i2c-pull-up;
+		};
+	};
+};

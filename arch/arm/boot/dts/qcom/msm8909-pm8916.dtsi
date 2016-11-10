@@ -43,8 +43,8 @@
 		regulator-min-microvolt = <1>;
 		regulator-max-microvolt = <9>;
 
-		qcom,cpr-voltage-ceiling = <1050000 1225000 1350000>;
-		qcom,cpr-voltage-floor = <1050000 1050000 1155000>;
+		qcom,cpr-voltage-ceiling = <1100000 1225000 1350000>;/*modifyed by liumx for apc power*/
+		qcom,cpr-voltage-floor = <1100000 1100000 1155000>;/*modifyed by liumx for apc power*/
 		vdd-apc-supply = <&pm8916_s2>;
 
 		qcom,vdd-mx-corner-map = <4 5 7>;
@@ -96,7 +96,7 @@
 					<0 0 2 4 9>,
 					<2 0 2 4 6>;
 		qcom,cpr-quot-adjust-scaling-factor-max = <1400>;
-		qcom,cpr-enable;
+		/*qcom,cpr-enable;*//*modifyed by liumx for apc power*/
 	};
 
 	qcom,gcc@1800000 {

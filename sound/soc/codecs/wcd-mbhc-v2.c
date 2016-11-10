@@ -17,6 +17,7 @@
 #include <linux/device.h>
 #include <linux/printk.h>
 #include <linux/ratelimit.h>
+#include <linux/debugfs.h>//Added by lichuangchuang for fastmmi headset status (8916) SW00000000 2014/06/18
 #include <linux/list.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>
@@ -55,6 +56,7 @@
 #define FW_READ_TIMEOUT 4000000
 #define FAKE_REM_RETRY_ATTEMPTS 3
 
+static bool is_in_detect_time = false; //Added by lichuangchuang for fix 3 hole headset report button press event (8916) SW00000000 2014-08-18
 static int det_extn_cable_en;
 module_param(det_extn_cable_en, int,
 		S_IRUGO | S_IWUSR | S_IWGRP);
@@ -165,8 +167,7 @@ static void wcd_program_btn_threshold(const struct wcd_mbhc *mbhc, bool micbias)
 	btn_det = WCD_MBHC_CAL_BTN_DET_PTR(mbhc->mbhc_cfg->calibration);
 
 	if (micbias)
-		btn_voltage = ((void *)&btn_det->_v_btn_low) +
-			(sizeof(btn_det->_v_btn_low[0]) * btn_det->num_btn);
+		btn_voltage = btn_det->_v_btn_high;//Mod by lichuangchuang for headset button detect (8916) SW00000000 2015/02/26
 	else
 		btn_voltage = btn_det->_v_btn_low;
 	for (i = 0; i <  btn_det->num_btn; i++) {
@@ -252,7 +253,8 @@ static int wcd_event_notify(struct notifier_block *self, unsigned long val,
 	switch (event) {
 	/* MICBIAS usage change */
 	case WCD_EVENT_PRE_MICBIAS_2_ON:
-		if (mbhc->micbias_enable) {
+		if ((snd_soc_read(codec,MSM8X16_WCD_A_ANALOG_MICB_1_INT_RBIAS) & 0x10) &&
+			(snd_soc_read(codec,MSM8X16_WCD_A_ANALOG_MICB_2_EN) & 0x80)) {//Modify by lichuangchuang for apple headset mic no sound (8916) SW00090866 2014-11-08
 			snd_soc_update_bits(codec,
 					MSM8X16_WCD_A_ANALOG_MICB_1_CTL,
 					0x60, 0x60);
@@ -276,6 +278,16 @@ static int wcd_event_notify(struct notifier_block *self, unsigned long val,
 		/* configure cap settings properly when micbias is enabled */
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->set_cap_mode)
 			mbhc->mbhc_cb->set_cap_mode(codec, micbias1, true);
+		//Modify by lichuangchuang for headset no button report in spk call mode (8909) SW00121048 2015-03-12 start
+		if(snd_soc_read(codec,MSM8X16_WCD_A_ANALOG_MICB_2_EN) & 0x80){
+			snd_soc_update_bits(codec,
+				MSM8X16_WCD_A_ANALOG_MBHC_FSM_CTL,
+				0xB0, 0x80);
+		//	snd_soc_update_bits(codec,
+		//		MSM8X16_WCD_A_ANALOG_MICB_1_EN,
+		//		0x40, 0x40);
+		}
+		//Modify by lichuangchuang for headset no button report in spk call mode (8909) SW00121048 2015-03-12 end
 		break;
 	/* MICBIAS usage change */
 	case WCD_EVENT_PRE_MICBIAS_2_OFF:
@@ -284,6 +296,13 @@ static int wcd_event_notify(struct notifier_block *self, unsigned long val,
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->set_micbias_value)
 			mbhc->mbhc_cb->set_micbias_value(codec);
 		mbhc->is_hs_recording = false;
+		//Add by lichuangchuang for headset no button report in spk call mode (8909) SW00121048 2015-03-12 start
+		if(snd_soc_read(codec,MSM8X16_WCD_A_ANALOG_MICB_2_EN) & 0x80){
+		//	snd_soc_update_bits(codec,
+		//		MSM8X16_WCD_A_ANALOG_MICB_1_EN,
+		//		0x40, 0x40);
+		}
+		//Add by lichuangchuang for headset no button report in spk call mode (8909) SW00121048 2015-03-12 end
 		/* Enable PULL UP if PA's are enabled */
 		if ((test_bit(WCD_MBHC_EVENT_PA_HPHL, &mbhc->event_state)) ||
 				(test_bit(WCD_MBHC_EVENT_PA_HPHR,
@@ -297,6 +316,7 @@ static int wcd_event_notify(struct notifier_block *self, unsigned long val,
 		/* configure cap settings properly when micbias is disabled */
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->set_cap_mode)
 			mbhc->mbhc_cb->set_cap_mode(codec, micbias1, false);
+		wcd_program_btn_threshold(mbhc, true);//Added by lichuangchuang for headset button (8916_2.1.1) SW00093158 2014/11/14
 		break;
 	case WCD_EVENT_POST_HPHL_PA_OFF:
 		if (mbhc->hph_status & SND_JACK_OC_HPHL)
@@ -454,6 +474,7 @@ static void wcd_mbhc_set_and_turnoff_hph_padac(struct wcd_mbhc *mbhc)
 	} else {
 		pr_debug("%s PA is off\n", __func__);
 	}
+	if(!current_ext_spk_pa_state)//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/07/16
 	snd_soc_update_bits(codec, MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_EN,
 			    0x30, 0x00);
 	usleep_range(wg_time * 1000, wg_time * 1000 + 50);
@@ -671,13 +692,14 @@ static void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 				enum snd_jack_types jack_type)
 {
 	struct snd_soc_codec *codec = mbhc->codec;
+	int pre_plug = 0;//Add by lichuangchuang for headset type chenge err (8916) SW00000000 2014-08-13
 	WCD_MBHC_RSC_ASSERT_LOCKED(mbhc);
 
 	pr_debug("%s: enter insertion %d hph_status %x\n",
 		 __func__, insertion, mbhc->hph_status);
 	if (!insertion) {
 		/* Report removal */
-		mbhc->hph_status &= ~jack_type;
+		mbhc->hph_status = 0;//Modify by lichuangchuang for iphone headset can not remove (8916) SW00000000 2014-08-28
 		/*
 		 * cancel possibly scheduled btn work and
 		 * report release if we reported button press
@@ -697,7 +719,7 @@ static void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			mbhc->micbias_enable = false;
 
 		mbhc->zl = mbhc->zr = 0;
-		pr_debug("%s: Reporting removal %d(%x)\n", __func__,
+		pr_err("%s: Reporting removal %d(%x)\n", __func__,
 			 jack_type, mbhc->hph_status);
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				mbhc->hph_status, WCD_MBHC_JACK_MASK);
@@ -747,9 +769,9 @@ static void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 		if (mbhc->current_plug == MBHC_PLUG_TYPE_HEADSET &&
 			jack_type == SND_JACK_HEADPHONE)
 			mbhc->hph_status &= ~SND_JACK_HEADSET;
-
+		pre_plug = mbhc->current_plug;//Add by lichuangchuang for headset type chenge err (8916) SW00000000 2014-08-13
 		/* Report insertion */
-		mbhc->hph_status |= jack_type;
+		mbhc->hph_status = jack_type;//Modify by lichuangchuang for iphone headset can not remove (8916) SW00000000 2014-08-28
 
 		if (jack_type == SND_JACK_HEADPHONE)
 			mbhc->current_plug = MBHC_PLUG_TYPE_HEADPHONE;
@@ -760,12 +782,27 @@ static void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			mbhc->jiffies_atreport = jiffies;
 		}
 		else if (jack_type == SND_JACK_LINEOUT)
-			mbhc->current_plug = MBHC_PLUG_TYPE_HIGH_HPH;
-
+			mbhc->current_plug = MBHC_PLUG_TYPE_HEADSET;//Mod by lichuangchuang for headset detect err type HPH-3 (8916) SW00069581 2014-08-06
+		//Add by lichuangchuang for headset type chenge err (8909) SW00121048 2015-03-12 start
+        	/* enable current source if micbias disabled */
+	        if((mbhc->current_plug == MBHC_PLUG_TYPE_HEADSET) &&
+			(!(snd_soc_read(codec,MSM8X16_WCD_A_ANALOG_MICB_2_EN) & 0x80) ||
+                	!(snd_soc_read(codec,MSM8X16_WCD_A_ANALOG_MICB_1_EN) & 0x40))){
+                	snd_soc_update_bits(codec,
+        	                MSM8X16_WCD_A_ANALOG_MBHC_FSM_CTL,
+	                        0xB0, 0xB0);
+			//snd_soc_update_bits(codec,
+                     //           MSM8X16_WCD_A_ANALOG_MICB_1_EN,
+                     //           0x40, 0x40);
+		}
+                if((pre_plug != MBHC_PLUG_TYPE_NONE) && (pre_plug != mbhc->current_plug))
+                        wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
+                                    0, WCD_MBHC_JACK_MASK);
+		//Add by lichuangchuang for headset type chenge err (8909) SW00121048 2015-03-12 end
 		if (mbhc->impedance_detect)
 			wcd_mbhc_calc_impedance(mbhc,
 					&mbhc->zl, &mbhc->zr);
-		pr_debug("%s: Reporting insertion %d(%x)\n", __func__,
+		pr_err("%s: Reporting insertion %d(%x)\n", __func__,//Modify by lichuangchuang for headset no button report in spk call mode (8916) SW00000000 2014-09-01
 			 jack_type, mbhc->hph_status);
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				    mbhc->hph_status, WCD_MBHC_JACK_MASK);
@@ -995,6 +1032,7 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 
 	pr_debug("%s: enter\n", __func__);
 
+	is_in_detect_time = true; //Added by lichuangchuang for fix 3 hole headset report button press event (8916) SW00000000 2014-08-18
 	mbhc = container_of(work, struct wcd_mbhc, correct_plug_swch);
 	codec = mbhc->codec;
 
@@ -1089,7 +1127,7 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 
 		if (result2 == 1) {
 			pr_debug("%s: cable is extension cable\n", __func__);
-			plug_type = MBHC_PLUG_TYPE_HIGH_HPH;
+			plug_type = MBHC_PLUG_TYPE_HEADSET;//Mod by lichuangchuang for headset detect err type HPH-3 (8916) SW00069581 2014-08-06
 			wrk_complete = true;
 		} else {
 			pr_debug("%s: cable might be headset: %d\n", __func__,
@@ -1146,11 +1184,21 @@ report:
 enable_supply:
 	wcd_enable_mbhc_supply(mbhc, plug_type);
 exit:
+	//Added by lichuangchuang for button can not use in spk call mode (8916) SW00000000 2014-11-08 start
+	if (!(snd_soc_read(codec,MSM8X16_WCD_A_ANALOG_MICB_2_EN) & 0x80) && plug_type == MBHC_PLUG_TYPE_HEADSET) {
+		pr_err("%s: It's headset, and micbias is closed, open back current souce!\n", __func__);
+		/* Write back current source value */
+		snd_soc_update_bits(codec,
+			MSM8X16_WCD_A_ANALOG_MBHC_FSM_CTL,
+			0xB0, 0xB0);
+	}
+	//Added by lichuangchuang for button can not use in spk call mode (8916) SW00000000 2014-11-08 end
 	micbias1 = (snd_soc_read(codec, MSM8X16_WCD_A_ANALOG_MICB_1_EN) & 0x80);
 	micbias2 = (snd_soc_read(codec, MSM8X16_WCD_A_ANALOG_MICB_2_EN) & 0x80);
 	if (mbhc->mbhc_cb && mbhc->mbhc_cb->set_cap_mode)
 		mbhc->mbhc_cb->set_cap_mode(codec, micbias1, micbias2);
 	wcd9xxx_spmi_unlock_sleep();
+	is_in_detect_time = false; //Added by lichuangchuang for fix 3 hole headset report button press event (8916) SW00000000 2014-08-18
 	pr_debug("%s: leave\n", __func__);
 }
 
@@ -1223,7 +1271,7 @@ static void wcd_mbhc_detect_plug_type(struct wcd_mbhc *mbhc)
 		if (!result1 && !(result2 & 0x01))
 			plug_type = MBHC_PLUG_TYPE_HEADSET;
 		else if (!result1 && (result2 & 0x01))
-			plug_type = MBHC_PLUG_TYPE_HIGH_HPH;
+			plug_type = MBHC_PLUG_TYPE_HEADSET;//Mod by lichuangchuang for headset detect err type HPH-3 (8916) SW00069581 2014-08-06
 		else {
 			plug_type = MBHC_PLUG_TYPE_INVALID;
 			goto exit;
@@ -1306,7 +1354,15 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->enable_mb_source)
 			mbhc->mbhc_cb->enable_mb_source(codec, true);
 		mbhc->btn_press_intr = false;
+		//Added by lichuangchuang for headset detect in spk on (8916) SW00000000 2014/07/16 start
+		if(current_ext_spk_pa_state)
+                	snd_soc_update_bits(codec, MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_EN,
+                            0x30, 0x00);
 		wcd_mbhc_detect_plug_type(mbhc);
+		if(current_ext_spk_pa_state)
+                        snd_soc_update_bits(codec, MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_EN,
+                            0x30, 0x30);
+		//Added by lichuangchuang for headset detect in spk on (8916) SW00000000 2014/07/16 end
 	} else if ((mbhc->current_plug != MBHC_PLUG_TYPE_NONE)
 			&& !detection_type) {
 		/* Disable external voltage source to micbias if present */
@@ -1638,6 +1694,7 @@ static void wcd_btn_lpress_fn(struct work_struct *work)
 	if (mbhc->current_plug == MBHC_PLUG_TYPE_HEADSET) {
 		pr_debug("%s: Reporting long button press event, result1: %d\n",
 			 __func__, result1);
+		if(!is_in_detect_time && mbhc->btn_press_intr)//Added by lichuangchuang for fix 3 hole headset report button press event (8916) SW00000000 2014-08-19
 		wcd_mbhc_jack_report(mbhc, &mbhc->button_jack,
 				mbhc->buttons_pressed, mbhc->buttons_pressed);
 	}
@@ -1707,6 +1764,13 @@ irqreturn_t wcd_mbhc_btn_press_handler(int irq, void *data)
 				__func__);
 		goto done;
 	}
+	//Add by lichuangchuang for headset no button report in spk call mode (8909) SW00121048 2015-03-12 start
+	if(snd_soc_read(codec,MSM8X16_WCD_A_ANALOG_MICB_2_EN) & 0x80){
+	//	snd_soc_update_bits(codec,
+	//		MSM8X16_WCD_A_ANALOG_MICB_1_EN,
+	//		0x40, 0x40);
+	}
+	//Add by lichuangchuang for headset no button report in spk call mode (8909) SW00121048 2015-03-12 end
 	result1 = snd_soc_read(codec, MSM8X16_WCD_A_ANALOG_MBHC_BTN_RESULT);
 	mask = wcd_mbhc_get_button_mask(result1);
 	mbhc->buttons_pressed |= mask;
@@ -1756,6 +1820,7 @@ static irqreturn_t wcd_mbhc_release_handler(int irq, void *data)
 		if (ret == 0) {
 			pr_debug("%s: Reporting long button release event\n",
 				 __func__);
+			if(!is_in_detect_time)//Added by lichuangchuang for fix 3 hole headset report button press event (8916) SW00000000 2014-08-18
 			wcd_mbhc_jack_report(mbhc, &mbhc->button_jack,
 					0, mbhc->buttons_pressed);
 		} else {
@@ -1765,12 +1830,14 @@ static irqreturn_t wcd_mbhc_release_handler(int irq, void *data)
 			} else {
 				pr_debug("%s: Reporting btn press\n",
 					 __func__);
+				if(!is_in_detect_time)//Added by lichuangchuang for fix 3 hole headset report button press event (8916) SW00000000 2014-08-18
 				wcd_mbhc_jack_report(mbhc,
 						     &mbhc->button_jack,
 						     mbhc->buttons_pressed,
 						     mbhc->buttons_pressed);
 				pr_debug("%s: Reporting btn release\n",
 					 __func__);
+				if(!is_in_detect_time)//Added by lichuangchuang for fix 3 hole headset report button press event (8916) SW00000000 2014-08-18
 				wcd_mbhc_jack_report(mbhc,
 						&mbhc->button_jack,
 						0, mbhc->buttons_pressed);
@@ -1812,6 +1879,7 @@ static irqreturn_t wcd_mbhc_hphl_ocp_irq(int irq, void *data)
 	} else {
 		pr_err("%s: Bad wcd9xxx_spmi private data\n", __func__);
 	}
+	hphlocp_off_report(mbhc, SND_JACK_OC_HPHL);//Added by lichuangchuang for ESD ocp err (8916) SW00000000 2014-08-18
 	return IRQ_HANDLED;
 }
 
@@ -1838,6 +1906,7 @@ static irqreturn_t wcd_mbhc_hphr_ocp_irq(int irq, void *data)
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				    mbhc->hph_status, WCD_MBHC_JACK_MASK);
 	}
+	hphrocp_off_report(mbhc, SND_JACK_OC_HPHR);//Added by lichuangchuang for ESD ocp err (8916) SW00000000 2014-08-18
 	return IRQ_HANDLED;
 }
 
@@ -1870,7 +1939,7 @@ static int wcd_mbhc_initialise(struct wcd_mbhc *mbhc)
 	wcd_program_hs_vref(mbhc);
 
 	/* Program Button threshold registers */
-	wcd_program_btn_threshold(mbhc, false);
+	wcd_program_btn_threshold(mbhc, true);//Added by lichuangchuang for headset button (8916_2.1.1) SW00093158 2014/11/14
 
 	INIT_WORK(&mbhc->correct_plug_swch, wcd_correct_swch_plug);
 	/* enable the WCD MBHC IRQ's */
@@ -2014,6 +2083,58 @@ void wcd_mbhc_stop(struct wcd_mbhc *mbhc)
 }
 EXPORT_SYMBOL(wcd_mbhc_stop);
 
+//Added by lichuangchuang for fastmmi headset status (8916) SW00000000 2014/06/18 begin
+#ifdef CONFIG_DEBUG_FS
+ssize_t codec_mbhc_debug_read_user(struct file *file, char __user *buf,
+			      size_t count, loff_t *pos)
+{
+	const int size = 768;
+	char buffer[size];
+	int n = 0;
+	struct wcd_mbhc *mbhc = file->private_data;
+
+	n = scnprintf(buffer, size - n, "headset button = %d\n",
+		      mbhc->buttons_pressed);
+	n += scnprintf(buffer + n, size - n, "Insert detect insert = %d\n",
+		       !!(mbhc->current_plug));
+	buffer[n] = 0;
+
+	return simple_read_from_buffer(buf, count, pos, buffer, n);
+}
+
+static int codec_debug_open_user(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
+static const struct file_operations mbhc_debug_ops = {
+	.open = codec_debug_open_user,
+	.read = codec_mbhc_debug_read_user,
+};
+
+static void wcd9xxx_init_debugfs_user(struct wcd_mbhc *mbhc)
+{
+	mbhc->debugfs_mbhc =
+	    debugfs_create_file("wcd9xxx_mbhc", S_IFREG | S_IRUGO,
+				NULL, mbhc, &mbhc_debug_ops);
+}
+
+
+static void wcd9xxx_cleanup_debugfs_user(struct wcd_mbhc *mbhc)
+{
+	debugfs_remove(mbhc->debugfs_mbhc);
+}
+#else
+static void wcd9xxx_init_debugfs_user(struct wcd_mbhc *mbhc)
+{
+}
+
+static void wcd9xxx_cleanup_debugfs_user(struct wcd_mbhc *mbhc)
+{
+}
+#endif
+//Added by lichuangchuang for fastmmi headset status (8916) SW00000000 2014/06/18 end
 /*
  * wcd_mbhc_init : initialize MBHC internal structures.
  *
@@ -2131,6 +2252,7 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_codec *codec,
 
 	init_waitqueue_head(&mbhc->wait_btn_press);
 	mutex_init(&mbhc->codec_resource_lock);
+	wcd9xxx_init_debugfs_user(mbhc);//Added by lichuangchuang for fastmmi headset status (8916) SW00000000 2014/06/18
 
 	ret = wcd9xxx_spmi_request_irq(mbhc->intr_ids->mbhc_sw_intr,
 				  wcd_mbhc_mech_plug_detect_irq,
@@ -2234,6 +2356,7 @@ void wcd_mbhc_deinit(struct wcd_mbhc *mbhc)
 	wcd9xxx_spmi_free_irq(mbhc->intr_ids->hph_left_ocp, mbhc);
 	wcd9xxx_spmi_free_irq(mbhc->intr_ids->hph_right_ocp, mbhc);
 	msm8x16_unregister_notifier(codec, &mbhc->nblock);
+	wcd9xxx_cleanup_debugfs_user(mbhc);//Added by lichuangchuang for fastmmi headset status (8916) SW00000000 2014/06/18 begin
 	mutex_destroy(&mbhc->codec_resource_lock);
 }
 EXPORT_SYMBOL(wcd_mbhc_deinit);

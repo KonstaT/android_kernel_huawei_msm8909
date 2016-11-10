@@ -3523,6 +3523,16 @@ static int smb135x_hw_init(struct smb135x_chg *chip)
 		goto free_regulator;
 	}
 
+	/* set maximum fastchg current */
+	if (chip->fastchg_ma != -EINVAL) {
+		rc = smb135x_set_fastchg_current(chip, chip->fastchg_ma);
+		if (rc < 0) {
+			dev_err(chip->dev, "Couldn't set fastchg current = %d\n",
+									rc);
+			goto free_regulator;
+		}
+	}
+
 	if (chip->usb_pullup_vreg) {
 		/* enable 9V HVDCP adapter support */
 		rc = smb135x_masked_write(chip, CFG_E_REG, HVDCP_5_9_BIT,
@@ -3531,16 +3541,6 @@ static int smb135x_hw_init(struct smb135x_chg *chip)
 			dev_err(chip->dev,
 				"Couldn't request for 5 or 9V rc=%d\n", rc);
 			goto free_regulator;
-		}
-	}
-
-	/* set maximum fastchg current */
-	if (chip->fastchg_ma != -EINVAL) {
-		rc = smb135x_set_fastchg_current(chip, chip->fastchg_ma);
-		if (rc < 0) {
-			dev_err(chip->dev, "Couldn't set fastchg current = %d\n",
-									rc);
-			return rc;
 		}
 	}
 
@@ -3559,7 +3559,7 @@ static int smb135x_hw_init(struct smb135x_chg *chip)
 		if (rc < 0)
 			goto free_regulator;
 	}
-
+	
 	__smb135x_charging(chip, chip->chg_enabled);
 
 	/* interrupt enabling - active low */
@@ -3628,6 +3628,17 @@ static int smb135x_hw_init(struct smb135x_chg *chip)
 		rc = smb135x_masked_write(chip, CFG_1A_REG, mask, 0);
 		if (rc < 0) {
 			dev_err(chip->dev, "Couldn't disable soft vfloat rc = %d\n",
+					rc);
+			goto free_regulator;
+		}
+	}
+
+	if (chip->soft_current_comp_disabled) {
+		mask = HOT_SOFT_CURRENT_COMP_EN_BIT
+				| COLD_SOFT_CURRENT_COMP_EN_BIT;
+		rc = smb135x_masked_write(chip, CFG_1A_REG, mask, 0);
+		if (rc < 0) {
+			dev_err(chip->dev, "Couldn't disable soft current rc = %d\n",
 					rc);
 			goto free_regulator;
 		}

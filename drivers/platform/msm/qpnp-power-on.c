@@ -1,4 +1,5 @@
-/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+/*
+ * Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -71,7 +72,7 @@
 #define QPNP_PON_S3_DBC_CTL(base)		(base + 0x75)
 #define QPNP_PON_TRIGGER_EN(base)		(base + 0x80)
 #define QPNP_PON_XVDD_RB_SPARE(base)		(base + 0x8E)
-#define QPNP_PON_SOFT_RB_SPARE(base)		(base + 0x8F)
+#define QPNP_PON_SOFT_RB_SPARE(base)            (base + 0x8F)
 #define QPNP_PON_SEC_ACCESS(base)		(base + 0xD0)
 
 #define QPNP_PON_SEC_UNLOCK			0xA5
@@ -592,6 +593,9 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 
 	pr_debug("PMIC input: code=%d, sts=0x%hhx\n",
 					cfg->key_code, pon_rt_sts);
+//add by litao begin
+	pr_err("input_report_key key_code=%d key_value=%d\n", cfg->key_code, pon_rt_sts & pon_rt_bit);
+//add by litao end
 	key_status = pon_rt_sts & pon_rt_bit;
 
 	/* simulate press event in case release event occured

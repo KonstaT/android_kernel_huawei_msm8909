@@ -292,117 +292,143 @@ static const struct qpnp_vadc_map_pt adcmap_qrd_skug_btm_threshold[] = {
 	{800,	582},
 };
 
+/*xiongzuan modify for temp-table by 20150402 begin*/
 static const struct qpnp_vadc_map_pt adcmap_qrd_skuh_btm_threshold[] = {
-	{-200,	1531},
-	{-180,	1508},
-	{-160,	1483},
-	{-140,	1458},
-	{-120,	1432},
-	{-100,	1404},
-	{-80,	1377},
-	{-60,	1348},
-	{-40,	1319},
-	{-20,	1290},
-	{0,	1260},
-	{20,	1230},
-	{40,	1200},
-	{60,	1171},
-	{80,	1141},
-	{100,	1112},
-	{120,	1083},
-	{140,	1055},
-	{160,	1027},
-	{180,	1000},
-	{200,	973},
-	{220,	948},
-	{240,	923},
-	{260,	899},
-	{280,	876},
-	{300,	854},
-	{320,	832},
-	{340,	812},
-	{360,	792},
-	{380,	774},
-	{400,	756},
-	{420,	739},
-	{440,	723},
-	{460,	707},
-	{480,	692},
-	{500,	679},
-	{520,	665},
-	{540,	653},
-	{560,	641},
-	{580,	630},
-	{600,	619},
-	{620,	609},
-	{640,	600},
-	{660,	591},
-	{680,	583},
-	{700,	575},
-	{720,	567},
-	{740,	560},
-	{760,	553},
-	{780,	547},
-	{800,	541},
-	{820,	535},
-	{840,	530},
-	{860,	524},
-	{880,	520},
+	{-400,	1709},
+	{-380,	1700},
+	{-360,	1689},
+	{-340,	1677},
+	{-320,	1665},
+	{-300,	1652},
+	{-280,	1637},
+	{-260,	1622},
+	{-240,	1585},
+	{-220,	1570},
+	{-200,	1549},//1569
+	{-180,	1535},//1549
+	{-160,	1515},//1527
+	{-140,	1495},//1505
+	{-120,	1468},//1482
+	{-100,	1445},//1457
+	{-80,	1425},//1431
+	{-60,	1384},
+	{-40,	1349},//1376
+	{-20,	1327},//1347
+	{0,		1300},//1317
+	{20,		1270},//1286
+	{40,		1245},//1255q
+	{60,		1213},
+	{80,		1190},
+	{100,	1156},
+	{120,	1123},
+	{140,	1088},
+	{160,	1054},
+	{180,	1020},
+	{200,	985},
+	{220,	951},
+	{240,	917},
+	{260,	883},
+	{280,	850},
+	{300,	817},
+	{320,	785},
+	{340,	753},
+	{360,	722},
+	{380,	692},
+	{400,	663},
+	{420,	634},
+	{440,	606},
+	{460,	580},
+	{480,	554},
+	{500,	529},
+	{520,	505},
+	{540,	481},
+	{560,	459},
+	{580,	438},
+	{600,	417},
+	{620,	398},
+	{640,	379},
+	{660,	361},
+	{680,	344},
+	{700,	328},
+	{720,	312},
+	{740,	298},
+	{760,	283},
+	{780,	270},
+	{800,	257},
+	{820,	245},
+	{840,	234},
+	{860,	223},
+	{880,	212},
 };
 
 static const struct qpnp_vadc_map_pt adcmap_qrd_skuc_btm_threshold[] = {
-	{-200,	1539},
-	{-180,	1515},
-	{-160,	1491},
-	{-140,	1465},
-	{-120,	1438},
-	{-100,	1410},
-	{-80,	1381},
-	{-60,	1352},
-	{-40,	1322},
-	{-20,	1291},
-	{0,	1260},
-	{20,	1229},
-	{40,	1197},
-	{60,	1166},
-	{80,	1134},
-	{100,	1103},
-	{120,	1072},
-	{140,	1042},
-	{160,	1012},
-	{180,	982},
-	{200,	954},
-	{220,	926},
-	{240,	899},
-	{260,	873},
-	{280,	847},
-	{300,	823},
-	{320,	800},
-	{340,	777},
-	{360,	756},
-	{380,	735},
-	{400,	715},
-	{420,	696},
-	{440,	679},
-	{460,	662},
-	{480,	645},
-	{500,	630},
-	{520,	615},
-	{540,	602},
-	{560,	588},
-	{580,	576},
-	{600,	564},
-	{620,	553},
-	{640,	543},
-	{660,	533},
-	{680,	523},
-	{700,	515},
-	{720,	506},
-	{740,	498},
-	{760,	491},
-	{780,	484},
-	{800,	477},
+	{-400,	1709},
+	{-380,	1700},
+	{-360,	1689},
+	{-340,	1677},
+	{-320,	1665},
+	{-300,	1652},
+	{-280,	1637},
+	{-260,	1622},
+	{-240,	1585},
+	{-220,	1570},
+	{-200,	1549},//1569
+	{-180,	1535},//1549
+	{-160,	1515},//1527
+	{-140,	1495},//1505
+	{-120,	1468},//1482
+	{-100,	1445},//1457
+	{-80,	1425},//1431
+	{-60,	1384},
+	{-40,	1349},//1376
+	{-20,	1327},//1347
+	{0,		1300},//1317
+	{20,		1270},//1286
+	{40,		1245},//1255q
+	{60,		1213},
+	{80,		1190},
+	{100,	1156},
+	{120,	1123},
+	{140,	1088},
+	{160,	1054},
+	{180,	1020},
+	{200,	985},
+	{220,	951},
+	{240,	917},
+	{260,	883},
+	{280,	850},
+	{300,	817},
+	{320,	785},
+	{340,	753},
+	{360,	722},
+	{380,	692},
+	{400,	663},
+	{420,	634},
+	{440,	606},
+	{460,	580},
+	{480,	554},
+	{500,	529},
+	{520,	505},
+	{540,	481},
+	{560,	459},
+	{580,	438},
+	{600,	417},
+	{620,	398},
+	{640,	379},
+	{660,	361},
+	{680,	344},
+	{700,	328},
+	{720,	312},
+	{740,	298},
+	{760,	283},
+	{780,	270},
+	{800,	257},
+	{820,	245},
+	{840,	234},
+	{860,	223},
+	{880,	212},
 };
+/*xiongzuan modify for temp-table by 20150402 end*/
 
 static const struct qpnp_vadc_map_pt adcmap_qrd_skue_btm_threshold[] = {
 	{-200,	1385},
@@ -513,6 +539,7 @@ static const struct qpnp_vadc_map_pt adcmap_qrd_skul_btm_threshold[] = {
 };
 
 /* Voltage to temperature */
+/*xiongzuan modify for BTM-table by 20150430 begin*/
 static const struct qpnp_vadc_map_pt adcmap_100k_104ef_104fb[] = {
 	{1758,	-40},
 	{1742,	-35},
@@ -528,8 +555,8 @@ static const struct qpnp_vadc_map_pt adcmap_100k_104ef_104fb[] = {
 	{1114,	15},
 	{1007,	20},
 	{900,	25},
-	{795,	30},
-	{696,	35},
+	{795,	30}
+/*	{696,	35},
 	{605,	40},
 	{522,	45},
 	{448,	50},
@@ -547,9 +574,9 @@ static const struct qpnp_vadc_map_pt adcmap_100k_104ef_104fb[] = {
 	{68,	110},
 	{59,	115},
 	{51,	120},
-	{44,	125}
+	{44,	125}*/
 };
-
+/*xiongzuan modify for temp-table by 20150430 end*/
 /* Voltage to temperature */
 static const struct qpnp_vadc_map_pt adcmap_150k_104ef_104fb[] = {
 	{1738,	-40},
@@ -1038,24 +1065,54 @@ int32_t qpnp_adc_scale_qrd_skug_batt_therm(struct qpnp_vadc_chip *chip,
 }
 EXPORT_SYMBOL(qpnp_adc_scale_qrd_skug_batt_therm);
 
+/* Modify by lichuangchuang for can not resume phone when remove usb or ac (8909) SW00000000 20150618 start*/
+static bool allow_calculate_bat_voltage = true;
+static bool allow_calculate_bat_voltage_work_init = false;
+static long last_bat_voltage = 0;
+#define WAKE_LOCK_WORK_TIME 3000
+#define CALCULATE_BAT_VOLTAGE_NUM 500
+struct delayed_work		allow_calculate_bat_voltage_work;
+
+static void qpnp_allow_calculate_bat_voltage_work(struct work_struct *work) 
+{
+	allow_calculate_bat_voltage = true;
+}
+
 int32_t qpnp_adc_scale_qrd_skuh_batt_therm(struct qpnp_vadc_chip *chip,
 		int32_t adc_code,
 		const struct qpnp_adc_properties *adc_properties,
 		const struct qpnp_vadc_chan_properties *chan_properties,
 		struct qpnp_vadc_result *adc_chan_result)
 {
-	int64_t bat_voltage = 0;
-
-	bat_voltage = qpnp_adc_scale_ratiometric_calib(adc_code,
-			adc_properties, chan_properties);
+	//int64_t bat_voltage = 0;
+	int i;
+	if(allow_calculate_bat_voltage_work_init == false){
+		allow_calculate_bat_voltage_work_init = true;
+		INIT_DELAYED_WORK(&allow_calculate_bat_voltage_work, 
+			qpnp_allow_calculate_bat_voltage_work);
+	}
+	if(allow_calculate_bat_voltage == true){
+		allow_calculate_bat_voltage = false;
+		for(i = 0; i < CALCULATE_BAT_VOLTAGE_NUM; i++){
+			//udelay(100);
+			last_bat_voltage += qpnp_adc_scale_ratiometric_calib(adc_code,
+							adc_properties, chan_properties);
+		}
+		last_bat_voltage /= CALCULATE_BAT_VOLTAGE_NUM;
+		
+		schedule_delayed_work(&allow_calculate_bat_voltage_work, 
+			msecs_to_jiffies(WAKE_LOCK_WORK_TIME));
+	}
 
 	return qpnp_adc_map_temp_voltage(
 			adcmap_qrd_skuh_btm_threshold,
 			ARRAY_SIZE(adcmap_qrd_skuh_btm_threshold),
-			bat_voltage,
+			last_bat_voltage,
 			&adc_chan_result->physical);
 }
 EXPORT_SYMBOL(qpnp_adc_scale_qrd_skuh_batt_therm);
+/* Mofify by lichuangchuang for can not resume phone when remove usb or ac (8909) SW00000000 20150618 end*/
+
 
 int32_t qpnp_adc_scale_qrd_skuc_batt_therm(struct qpnp_vadc_chip *chip,
 			int32_t adc_code,

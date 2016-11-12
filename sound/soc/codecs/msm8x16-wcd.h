@@ -53,6 +53,7 @@
 extern const u8 msm8x16_wcd_reg_readable[MSM8X16_WCD_CACHE_SIZE];
 extern const u8 msm8x16_wcd_reg_readonly[MSM8X16_WCD_CACHE_SIZE];
 extern const u8 msm8x16_wcd_reset_reg_defaults[MSM8X16_WCD_CACHE_SIZE];
+extern int ext_spk_pa_gpio;//Added by lichuangchuang for headset nc to no type (8916) SW00000000 2014/05/28
 
 enum codec_versions {
 	TOMBAK_1_0,

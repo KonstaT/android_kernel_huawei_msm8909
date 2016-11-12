@@ -20,3 +20,7 @@ obj-$(CONFIG_VIDEO_STK1160) += stk1160/
 obj-$(CONFIG_VIDEO_CX231XX) += cx231xx/
 obj-$(CONFIG_VIDEO_TM6000) += tm6000/
 obj-$(CONFIG_VIDEO_EM28XX) += em28xx/
+
+# add by wangtao for DTV (QW806) SW000000 2014-09-13
+obj-$(CONFIG_ISDBT_NMI) += nmi/nm32x/
+

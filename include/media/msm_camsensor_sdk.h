@@ -78,6 +78,15 @@ enum msm_camera_qup_i2c_write_batch_t {
 	MSM_CAMERA_I2C_BATCH_ENABLE,
 };
 
+/*Added Begin: by hanjianfeng  for camera power control 20140808*/
+enum cam_powerdown_mode_t{
+        POWERDOWN_DEFAULT,
+        POWERDOWN_SENSOR_SOFTWARE,
+        POWERDOWN_AF_SOFTWARE,
+        POWERDOWN_ALL_SOFTWARE,
+        POWERDOWN_INVALID,
+};
+/*Added End: by hanjianfeng  for camera power control 20140808*/
 enum msm_camera_i2c_reg_addr_type {
 	MSM_CAMERA_I2C_BYTE_ADDR = 1,
 	MSM_CAMERA_I2C_WORD_ADDR,
@@ -105,6 +114,7 @@ enum msm_sensor_power_seq_gpio_t {
 	SENSOR_GPIO_VANA,
 	SENSOR_GPIO_VDIG,
 	SENSOR_GPIO_VAF,
+	SENSOR_GPIO_ID,  //add by hanjianfeng  to  check pin of cameraid value 20130725
 	SENSOR_GPIO_FL_EN,
 	SENSOR_GPIO_FL_NOW,
 	SENSOR_GPIO_FL_RESET,
@@ -227,6 +237,11 @@ struct msm_camera_sensor_slave_info {
 	uint8_t  is_init_params_valid;
 	struct msm_sensor_init_params sensor_init_params;
 	uint8_t is_flash_supported;
+	// added by yangze for camera hardware info and camera gpio id (ql1001) 2014-06-10 begin
+	char sensor_module_info[64];
+	uint8_t sensor_gpio_id;
+	// added by yangze for camera hardware info and camera gpio id (ql1001) 2014-06-10 end 
+	uint8_t power_down_mode;//Add by hanjianfeng for camera power control 20140808
 };
 
 struct msm_camera_i2c_reg_array {

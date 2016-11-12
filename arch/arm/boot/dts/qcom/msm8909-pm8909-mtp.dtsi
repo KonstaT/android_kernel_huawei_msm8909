@@ -106,6 +106,10 @@
 	qcom,msm-micbias2-ext-cap;
 };
 
+&smb1357_otg_vreg {
+	usb-pullup-supply = <&pm8909_l13>;
+};
+
 &spk_vreg {
 	status = "okay";
 };

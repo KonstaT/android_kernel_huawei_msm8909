@@ -65,6 +65,9 @@ static int msm8909_auxpcm_rate = 8000;
 
 static atomic_t quat_mi2s_clk_ref;
 static atomic_t auxpcm_mi2s_clk_ref;
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 begin
+int ext_spk_pa_gpio = -1;
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 end
 
 static int msm8x16_enable_codec_ext_clk(struct snd_soc_codec *codec, int enable,
 					bool dapm);
@@ -90,15 +93,19 @@ static struct wcd9xxx_mbhc_config wcd9xxx_mbhc_cfg = {
 	.mclk_rate = DEFAULT_MCLK_RATE,
 	.gpio = 0,
 	.gpio_irq = 0,
-	.gpio_level_insert = 0,
+	.gpio_level_insert = 1,//modify by lichuangchuang for headset nc to no type (8916) SW00000000 2014/05/28
 	.detect_extn_cable = true,
 	.micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET,
 	.insert_detect = true,
 	.swap_gnd_mic = NULL,
+//Deleted by lichuangchuang for headset detect (8916) SW00000000 2014/05/28 begin
+	/*
 	.cs_enable_flags = (1 << MBHC_CS_ENABLE_POLLING |
 			    1 << MBHC_CS_ENABLE_INSERTION |
 			    1 << MBHC_CS_ENABLE_REMOVAL |
 			    1 << MBHC_CS_ENABLE_DET_ANC),
+	*/
+//Deleted by lichuangchuang for headset detect (8916) SW00000000 2014/05/28 end
 	.do_recalibration = true,
 	.use_vddio_meas = true,
 	.enable_anc_mic_detect = false,
@@ -1346,8 +1353,7 @@ static void *def_msm8x16_wcd_mbhc_cal(void)
 
 	btn_cfg = WCD_MBHC_CAL_BTN_DET_PTR(msm8x16_wcd_cal);
 	btn_low = btn_cfg->_v_btn_low;
-	btn_high = ((void *)&btn_cfg->_v_btn_low) +
-		(sizeof(btn_cfg->_v_btn_low[0]) * btn_cfg->num_btn);
+	btn_high = btn_cfg->_v_btn_high;//Mod by lichuangchuang for headset button detect (8916) SW00000000 2015/02/26
 
 	/*
 	 * In SW we are maintaining two sets of threshold register
@@ -1360,17 +1366,18 @@ static void *def_msm8x16_wcd_mbhc_cal(void)
 	 * 210-290 == Button 2
 	 * 360-680 == Button 3
 	 */
-	btn_low[0] = 75;
-	btn_high[0] = 75;
+	//Modify by lichuangchuang for some headset no button report (8916) SW00076555 2014-09-11 start
+	btn_low[0] = 0;
+	btn_high[0] = 150;
 	btn_low[1] = 150;
 	btn_high[1] = 150;
-	btn_low[2] = 237;
-	btn_high[2] = 237;
-	btn_low[3] = 450;
-	btn_high[3] = 450;
-	btn_low[4] = 500;
-	btn_high[4] = 500;
-
+	btn_low[2] = 150;
+	btn_high[2] = 150;
+	btn_low[3] = 150;
+	btn_high[3] = 150;
+	btn_low[4] = 150;
+	btn_high[4] = 150;
+	//Modify by lichuangchuang for some headset no button report (8916) SW00076555 2014-09-11 end
 	return msm8x16_wcd_cal;
 }
 
@@ -2265,13 +2272,38 @@ static bool msm8x16_swap_gnd_mic(struct snd_soc_codec *codec)
 	return true;
 }
 
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 begin
+static int msm8x16_ext_spk_pa_init(struct platform_device *pdev)
+{
+	int ret = 0;
+
+	ext_spk_pa_gpio = of_get_named_gpio(pdev->dev.of_node,
+		"qcom,ext-spk-amp-gpio", 0);
+	if (gpio_is_valid(ext_spk_pa_gpio)) {
+		ret = gpio_request(ext_spk_pa_gpio, "ext_spk_amp_gpio");
+		if (ret) {
+			pr_err("%s: gpio_request failed for ext_spk_amp_gpio.\n",
+				__func__);
+			return -EINVAL;
+		}
+		gpio_direction_output(ext_spk_pa_gpio, 0);
+	}
+	return 0;
+}
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 end
 static int msm8x16_setup_hs_jack(struct platform_device *pdev,
 			struct msm8916_asoc_mach_data *pdata)
 {
 	struct pinctrl *pinctrl;
 
-	pdata->us_euro_gpio = of_get_named_gpio(pdev->dev.of_node,
-					"qcom,cdc-us-euro-gpios", 0);
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 begin
+	msm8x16_ext_spk_pa_init(pdev);
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 end
+//Mod by lichuangchuang for headset gnd_mic detect (8916) SW00000000 2014/06/10 begin
+//	pdata->us_euro_gpio = of_get_named_gpio(pdev->dev.of_node,
+//					"qcom,cdc-us-euro-gpios", 0);
+	pdata->us_euro_gpio = -1;
+//Mod by lichuangchuang for headset gnd_mic detect (8916) SW00000000 2014/06/10 end
 	if (pdata->us_euro_gpio < 0) {
 		dev_dbg(&pdev->dev,
 			"property %s in node %s not found %d\n",
@@ -2772,6 +2804,10 @@ static int msm8x16_asoc_machine_remove(struct platform_device *pdev)
 		iounmap(pdata->vaddr_gpio_mux_spkr_ctl);
 	if (pdata->vaddr_gpio_mux_mic_ctl)
 		iounmap(pdata->vaddr_gpio_mux_mic_ctl);
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 begin
+	if (gpio_is_valid(ext_spk_pa_gpio)) 
+		gpio_free(ext_spk_pa_gpio);
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 end
 	if (pdata->vaddr_gpio_mux_pcm_ctl)
 		iounmap(pdata->vaddr_gpio_mux_pcm_ctl);
 	snd_soc_unregister_card(card);

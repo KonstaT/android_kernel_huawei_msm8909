@@ -54,3 +54,5 @@ endif
 
 endif #MEDIA_USB_SUPPORT
 endif #USB
+# add by wangtao for DTV (QW806) SW000000 2014-09-13
+source "drivers/media/usb/nmi/nm32x/Kconfig"

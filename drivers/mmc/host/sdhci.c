@@ -54,6 +54,10 @@
 static unsigned int debug_quirks = 0;
 static unsigned int debug_quirks2;
 
+/* Modify by lichuangchuang for SD card detect(8909) SW00129909 20150523 start*/
+static int is_sdcard_init_state = 0;
+/* Modify by lichuangchuang for SD card detect(8909) SW00129909 20150523 end*/
+
 static void sdhci_finish_data(struct sdhci_host *);
 
 static void sdhci_send_command(struct sdhci_host *, struct mmc_command *);
@@ -1497,7 +1501,15 @@ static int sdhci_set_power(struct sdhci_host *host, unsigned short power)
 	 */
 	if (host->quirks & SDHCI_QUIRK_DELAY_AFTER_POWER)
 		mdelay(10);
-
+	/* Modify by lichuangchuang for SD card detect(8909) SW00129909 20150523 start*/
+	if(!strncmp("mmc1", mmc_hostname(host->mmc), sizeof("mmc1"))){
+		if(is_sdcard_init_state < 2){
+			is_sdcard_init_state ++;
+			pr_err("mmc1, sdhci_set_power delay 100ms num= %d. ", is_sdcard_init_state);
+			mdelay(100);
+		}
+	}
+	/* Modify by lichuangchuang for SD card detect(8909) SW00129909 20150523 end*/
 	return power;
 }
 

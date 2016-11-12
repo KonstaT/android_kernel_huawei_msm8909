@@ -978,10 +978,10 @@ static ssize_t aio_setup_vectored_rw(int rw, struct kiocb *kiocb, bool compat)
 static ssize_t aio_setup_single_vector(int rw, struct kiocb *kiocb)
 {
 	size_t len = kiocb->ki_nbytes;
-
+	
 	if (len > MAX_RW_COUNT)
 		len = MAX_RW_COUNT;
-
+	
 	if (unlikely(!access_ok(!rw, kiocb->ki_buf, len)))
                 return -EFAULT;
 

@@ -926,6 +926,7 @@ static int mdp3_hw_init(void)
 int mdp3_dynamic_clock_gating_ctrl(int enable)
 {
 	int rc = 0;
+	/*add qcom patch for display flash blue screen by xingbin begin*/
 	int cgc_cfg = 0;
 	/*Disable dynamic auto clock gating*/
 	rc = mdp3_clk_update(MDP3_CLK_AHB, 1);
@@ -937,17 +938,19 @@ int mdp3_dynamic_clock_gating_ctrl(int enable)
 	}
 	cgc_cfg = MDP3_REG_READ(MDP3_REG_CGC_EN);
 	if (enable) {
+		//MDP3_REG_WRITE(MDP3_REG_CGC_EN, 0x7FFFF);
 		cgc_cfg |= (BIT(10));
 		cgc_cfg |= (BIT(18));
 		MDP3_REG_WRITE(MDP3_REG_CGC_EN, cgc_cfg);
 		VBIF_REG_WRITE(MDP3_VBIF_REG_FORCE_EN, 0x0);
 	} else {
-		cgc_cfg &= ~(BIT(10));
-		cgc_cfg &= ~(BIT(18));
+		//MDP3_REG_WRITE(MDP3_REG_CGC_EN, 0x3FFFF);
+		cgc_cfg &= ~ (BIT(10));
+		cgc_cfg &= ~ (BIT(18));
 		MDP3_REG_WRITE(MDP3_REG_CGC_EN, cgc_cfg);
 		VBIF_REG_WRITE(MDP3_VBIF_REG_FORCE_EN, 0x3);
 	}
-
+	/*add qcom patch for display flash blue screen by xingbin end*/
 	rc = mdp3_clk_update(MDP3_CLK_AHB, 0);
 	rc |= mdp3_clk_update(MDP3_CLK_AXI, 0);
 	rc |= mdp3_clk_update(MDP3_CLK_MDP_CORE, 0);
@@ -1838,9 +1841,9 @@ int mdp3_iommu_ctrl(int enable)
 {
 	int rc;
 
-	if (mdp3_res->allow_iommu_update == false)
-		return 0;
-
+	if (mdp3_res->allow_iommu_update == false) 
+		return 0; 
+ 
 	if (enable)
 		rc = mdp3_iommu_enable(MDP3_CLIENT_DSI);
 	else
@@ -2182,8 +2185,8 @@ static int mdp3_panel_register_done(struct mdss_panel_data *pdata)
 	 * continue splash screen. This would have happened in
 	 * res_update in continuous_splash_on without this flag.
 	 */
-	if (pdata->panel_info.cont_splash_enabled == false)
-		mdp3_res->allow_iommu_update = true;
+	if (pdata->panel_info.cont_splash_enabled == false) 
+	mdp3_res->allow_iommu_update = true; 
 
 	return rc;
 }
@@ -2191,8 +2194,8 @@ static int mdp3_panel_register_done(struct mdss_panel_data *pdata)
 int mdp3_splash_done(struct mdss_panel_info *panel_info)
 {
 	if (panel_info->cont_splash_enabled) {
-		pr_err("continuous splash is on and splash done called\n");
-		return -EINVAL;
+	pr_err("continuous splash is on and splash done called\n");
+	return -EINVAL; 
 	}
 	mdp3_res->allow_iommu_update = true;
 	return 0;

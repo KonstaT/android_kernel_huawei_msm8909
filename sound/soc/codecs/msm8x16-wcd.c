@@ -77,7 +77,7 @@
  *50 Milliseconds sufficient for DSP bring up in the modem
  * after Sub System Restart
  */
-#define ADSP_STATE_READY_TIMEOUT_MS 50
+#define ADSP_STATE_READY_TIMEOUT_MS 1000//modifyed by liumx for adsp crash 20140826
 
 #define HPHL_PA_DISABLE (0x01 << 1)
 #define HPHR_PA_DISABLE (0x01 << 2)
@@ -95,6 +95,13 @@ enum {
 #define EAR_PMU 1
 #define SPK_PMD 2
 #define SPK_PMU 3
+
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/07/16 begin
+bool current_ext_spk_pa_state = false;
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/07/16 end
+
+//Added by lichuangchuang for ext_spk pa control mode (8916) SW00110406 2015/02/06
+int ext_spk_mode = 2;  // 1:0-1    2:0-1-0-1    3:0-1-0-1-0-1   4:0-1-0-1-0-1-0-1 (defalt: 2us; *** 0.75->10us.
 
 #define MICBIAS_DEFAULT_VAL 1800000
 #define MICBIAS_MIN_VAL 1600000
@@ -1264,6 +1271,64 @@ static int msm8x16_wcd_pa_gain_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+//Added by lichuangchuang for ext_spk pa control (8916) SW00124935 2015/03/24 begin
+static int msm8x16_wcd_ext_spk_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+
+	if (current_ext_spk_pa_state == false) {
+		ucontrol->value.integer.value[0] = 0;
+	} else if (current_ext_spk_pa_state == true) {
+		ucontrol->value.integer.value[0] = 1;
+	} else  {
+		dev_err(codec->dev, "%s: ERROR: Unsupported Speaker ext = %d\n",
+			__func__, current_ext_spk_pa_state);
+		return -EINVAL;
+	}
+
+	dev_dbg(codec->dev, "%s: current_ext_spk_pa_state = %d\n", __func__,
+			current_ext_spk_pa_state);
+	return 0;
+}
+
+static int msm8x16_wcd_ext_spk_set(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	int i = 0;
+
+	dev_dbg(codec->dev, "%s: ucontrol->value.integer.value[0] = %ld\n",
+		__func__, ucontrol->value.integer.value[0]);
+	switch (ucontrol->value.integer.value[0]) {
+		case 0:
+			//if(gpio_is_valid(ext_spk_pa_gpio))
+			//	gpio_direction_output(ext_spk_pa_gpio, 0);
+			current_ext_spk_pa_state = false;
+			break;
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+			ext_spk_mode = ucontrol->value.integer.value[0];
+			if(gpio_is_valid(ext_spk_pa_gpio)){
+				for(i = 0; i <ext_spk_mode ; i++){
+			//		gpio_direction_output(ext_spk_pa_gpio, 0);
+			//		udelay(1);
+			//		gpio_direction_output(ext_spk_pa_gpio, 1);
+			//		udelay(1);
+				}
+			}
+			current_ext_spk_pa_state = true;
+			break;
+		default:
+			return -EINVAL;
+	}
+	dev_dbg(codec->dev, "%s: current_ext_spk_pa_state = %d\n",
+		__func__, current_ext_spk_pa_state);
+	return 0;
+}
+//Added by lichuangchuang for ext_spk pa control (8916) SW00124935 2015/03/24 end
 
 static int msm8x16_wcd_boost_option_get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
@@ -1634,6 +1699,13 @@ static const char * const msm8x16_wcd_spk_boost_ctrl_text[] = {
 static const struct soc_enum msm8x16_wcd_spk_boost_ctl_enum[] = {
 		SOC_ENUM_SINGLE_EXT(2, msm8x16_wcd_spk_boost_ctrl_text),
 };
+//Added by lichuangchuang for ext_spk pa control (8916) SW00110406 2015/02/14 begin
+static const char * const msm8x16_wcd_ext_spk_ctrl_text[] = {
+		"DISABLE", "ENABLE", "MODE_2", "MODE_3", "MODE_4"};
+static const struct soc_enum msm8x16_wcd_ext_spk_ctl_enum[] = {
+		SOC_ENUM_SINGLE_EXT(5, msm8x16_wcd_ext_spk_ctrl_text),
+};
+//Added by lichuangchuang for ext_spk pa control (8916) SW00110406 2015/02/14 end
 
 static const char * const msm8x16_wcd_ext_spk_boost_ctrl_text[] = {
 		"DISABLE", "ENABLE"};
@@ -1680,6 +1752,11 @@ static const struct snd_kcontrol_new msm8x16_wcd_snd_controls[] = {
 
 	SOC_ENUM_EXT("LOOPBACK Mode", msm8x16_wcd_loopback_mode_ctl_enum[0],
 		msm8x16_wcd_loopback_mode_get, msm8x16_wcd_loopback_mode_put),
+
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 begin
+	SOC_ENUM_EXT("Speaker Ext", msm8x16_wcd_ext_spk_ctl_enum[0],
+		msm8x16_wcd_ext_spk_get, msm8x16_wcd_ext_spk_set),
+//Added by lichuangchuang for ext_spk pa control (8916) SW00000000 2014/05/28 end
 
 	SOC_SINGLE_TLV("ADC1 Volume", MSM8X16_WCD_A_ANALOG_TX_1_EN, 3,
 					8, 0, analog_gain),
@@ -3051,6 +3128,7 @@ static int msm8x16_wcd_hph_pa_event(struct snd_soc_dapm_widget *w,
 {
 	struct snd_soc_codec *codec = w->codec;
 	struct msm8x16_wcd_priv *msm8x16_wcd = snd_soc_codec_get_drvdata(codec);
+	int i = 0;//Added by lichuangchuang for ext_spk pa pop (8916) SW00077296 2014/12/30
 
 	dev_dbg(codec->dev, "%s: %s event = %d\n", __func__, w->name, event);
 
@@ -3079,9 +3157,30 @@ static int msm8x16_wcd_hph_pa_event(struct snd_soc_dapm_widget *w,
 			snd_soc_update_bits(codec,
 				MSM8X16_WCD_A_CDC_RX2_B6_CTL, 0x01, 0x00);
 		}
+		//Added by lichuangchuang for ext_spk pa pop (8916) SW00124935 2015/03/24 begin
+		usleep_range(10000, 10100);
+		if (w->shift == 4){
+			if(current_ext_spk_pa_state){
+				if(gpio_is_valid(ext_spk_pa_gpio)){
+					for(i = 0; i <ext_spk_mode; i++){
+						gpio_direction_output(ext_spk_pa_gpio, 0);
+						udelay(1);
+						gpio_direction_output(ext_spk_pa_gpio, 1);
+						udelay(1);
+					}
+				}
+			}
+		}
+		//Added by lichuangchuang for ext_spk pa pop (8916) SW00124935 2015/03/24 end
 		break;
 
 	case SND_SOC_DAPM_PRE_PMD:
+		//Added by lichuangchuang for ext_spk pa pop (8916) SW00124935 2015/03/24 begin
+		if (w->shift == 4){
+			if(gpio_is_valid(ext_spk_pa_gpio))
+				gpio_direction_output(ext_spk_pa_gpio, 0);
+		}
+		//Added by lichuangchuang for ext_spk pa pop (8916) SW00124935 2015/03/24 end
 		if (w->shift == 5) {
 			snd_soc_update_bits(codec,
 				MSM8X16_WCD_A_CDC_RX1_B6_CTL, 0x01, 0x01);
@@ -3267,10 +3366,12 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"IIR2 INP1 MUX", "DEC2", "DEC2 MUX"},
 	{"MIC BIAS Internal1", NULL, "INT_LDO_H"},
 	{"MIC BIAS Internal2", NULL, "INT_LDO_H"},
+	{"MIC BIAS Internal3", NULL, "INT_LDO_H"},//Added by lichuangchuang for MICBIAS3 internel power (8916) SW00000000 2014/07/02
 	{"MIC BIAS External", NULL, "INT_LDO_H"},
 	{"MIC BIAS External2", NULL, "INT_LDO_H"},
 	{"MIC BIAS Internal1", NULL, "MICBIAS_REGULATOR"},
 	{"MIC BIAS Internal2", NULL, "MICBIAS_REGULATOR"},
+	{"MIC BIAS Internal3", NULL, "MICBIAS_REGULATOR"},//Added by lichuangchuang for MICBIAS3 internel power (8916) SW00000000 2014/07/02
 	{"MIC BIAS External", NULL, "MICBIAS_REGULATOR"},
 	{"MIC BIAS External2", NULL, "MICBIAS_REGULATOR"},
 };

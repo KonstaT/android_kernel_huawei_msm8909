@@ -470,8 +470,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_add_rt_rule *)param)->num_rules
 			!= pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_add_rt_rule *)param)->
-				num_rules,
+				((struct ipa_ioc_add_rt_rule *)param)->num_rules,
 				pre_entry);
 			retval = -EFAULT;
 			break;
@@ -510,8 +509,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_mdfy_rt_rule *)param)->num_rules
 			!= pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_mdfy_rt_rule *)param)->
-				num_rules,
+				((struct ipa_ioc_mdfy_rt_rule *)param)->num_rules,
 				pre_entry);
 			retval = -EFAULT;
 			break;
@@ -589,8 +587,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_add_flt_rule *)param)->num_rules
 			!= pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_add_flt_rule *)param)->
-				num_rules,
+				((struct ipa_ioc_add_flt_rule *)param)->num_rules,
 				pre_entry);
 			retval = -EFAULT;
 			break;
@@ -629,8 +626,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_del_flt_rule *)param)->num_hdls
 			!= pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_del_flt_rule *)param)->
-				num_hdls,
+				((struct ipa_ioc_del_flt_rule *)param)->num_hdls,
 				pre_entry);
 			retval = -EFAULT;
 			break;
@@ -669,8 +665,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_mdfy_flt_rule *)param)->num_rules
 			!= pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_mdfy_flt_rule *)param)->
-				num_rules,
+				((struct ipa_ioc_mdfy_flt_rule *)param)->num_rules,
 				pre_entry);
 			retval = -EFAULT;
 			break;
@@ -1111,8 +1106,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_del_hdr_proc_ctx *)
 			param)->num_hdls != pre_entry)) {
 			IPAERR("current %d pre %d\n",
-				((struct ipa_ioc_del_hdr_proc_ctx *)param)->
-				num_hdls,
+				((struct ipa_ioc_del_hdr_proc_ctx *)param)->num_hdls,
 				pre_entry);
 			retval = -EFAULT;
 			break;

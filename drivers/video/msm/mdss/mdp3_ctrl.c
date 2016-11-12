@@ -739,7 +739,8 @@ static int mdp3_ctrl_on(struct msm_fb_data_type *mfd)
 	}
 	mdp3_ctrl_notifier_register(mdp3_session,
 		&mdp3_session->mfd->mdp_sync_pt_data.notifier);
-
+	/*add qcom patch for display flash blue screen by xingbin*/
+	//mdp3_qos_remapper_setup(panel);
 	/* request bus bandwidth before DSI DMA traffic */
 	rc = mdp3_ctrl_res_req_bus(mfd, 1);
 	if (rc) {
@@ -752,8 +753,8 @@ static int mdp3_ctrl_on(struct msm_fb_data_type *mfd)
 		pr_err("fail to disable dynamic clock gating\n");
 		goto on_error;
 	}
+	/*add qcom patch for display flash blue screen by xingbin*/
 	mdp3_qos_remapper_setup(panel);
-
 	rc = mdp3_ctrl_res_req_clk(mfd, 1);
 	if (rc) {
 		pr_err("fail to request mdp clk resource\n");
@@ -865,6 +866,7 @@ static int mdp3_ctrl_off(struct msm_fb_data_type *mfd)
 			rc = panel->event_handler(panel,
 				MDSS_EVENT_PANEL_CLK_CTRL, (void *)0);
 		}
+		/*add qcom patch for display flash blue screen by xingbin*/
 		rc = mdp3_dynamic_clock_gating_ctrl(1);
 		rc = mdp3_res_update(0, 1, MDP3_CLIENT_DMA_P);
 		if (rc)
@@ -939,6 +941,7 @@ static int mdp3_ctrl_reset(struct msm_fb_data_type *mfd)
 	mfd->panel_info->cont_splash_enabled = 0;
 	mdp3_session->in_splash_screen = 0;
 	mdp3_splash_done(mfd->panel_info);
+	
 reset_error:
 	mutex_unlock(&mdp3_session->lock);
 	return rc;

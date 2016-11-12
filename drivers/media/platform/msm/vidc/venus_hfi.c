@@ -1577,6 +1577,12 @@ static inline int venus_hfi_power_off(struct venus_hfi_device *device)
 		return 0;
 	}
 
+	rc = venus_hfi_halt_axi(device);
+	if (rc) {
+		dprintk(VIDC_WARN, "Failed to halt AXI\n");
+		return 0;
+	}
+
 	dprintk(VIDC_DBG, "Entering power collapse\n");
 	rc = venus_hfi_tzbsp_set_video_state(TZBSP_VIDEO_STATE_SUSPEND);
 	if (rc) {

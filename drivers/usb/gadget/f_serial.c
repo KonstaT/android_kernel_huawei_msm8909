@@ -1358,7 +1358,7 @@ static long gser_ioctl(struct file *fp, unsigned cmd, unsigned long arg)
 		smd_port_num =
 			gserial_ports[gser->port_num].client_port_num;
 
-		if (smd_write_arg.size > GSERIAL_BUF_LEN) {
+			if (smd_write_arg.size > GSERIAL_BUF_LEN) {
 			pr_err("%s: Invalid size:%u, max: %u", __func__,
 				smd_write_arg.size, GSERIAL_BUF_LEN);
 			ret = -EINVAL;

@@ -413,6 +413,7 @@ static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
 	register u32 r3 asm("r3") = w3;
 	register u32 r4 asm("r4") = w4;
 	register u32 r5 asm("r5") = w5;
+	register u32 r6 asm("r6") = 0;
 
 	do {
 		asm volatile(

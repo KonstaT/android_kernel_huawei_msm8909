@@ -1105,12 +1105,13 @@ static int proc_getdriver(struct dev_state *ps, void __user *arg)
 
 static int proc_connectinfo(struct dev_state *ps, void __user *arg)
 {
+	/*Modified by shenxinyu for huawei Security patches  20160818 begin*/
 	struct usbdevfs_connectinfo ci;
 
 	memset(&ci, 0, sizeof(ci));
 	ci.devnum = ps->dev->devnum;
 	ci.slow = ps->dev->speed == USB_SPEED_LOW;
-
+	/*Modified by shenxinyu for huawei Security patches  20160818 end*/
 	if (copy_to_user(arg, &ci, sizeof(ci)))
 		return -EFAULT;
 	return 0;

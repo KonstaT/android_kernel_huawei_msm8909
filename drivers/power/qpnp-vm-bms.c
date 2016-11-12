@@ -123,6 +123,8 @@
 
 #define QPNP_VM_BMS_DEV_NAME		"qcom,qpnp-vm-bms"
 
+static int soc_pre = 0;/* Add by lichuangchuang for battery debug (8909) SW00131408 20150507 */
+
 /* indicates the state of BMS */
 enum {
 	IDLE_STATE,
@@ -211,6 +213,9 @@ struct qpnp_bms_chip {
 	int				calculate_soc_ms;
 	int				voltage_soc_uv;
 	int				battery_present;
+	//aidongdong add for battery id info by 20140804 begin 
+	int				battery_id_info;
+	//aidongdong add for battery id info by 20140804 end
 	int				last_soc;
 	int				last_soc_unbound;
 	int				last_soc_change_sec;
@@ -289,6 +294,15 @@ static struct temp_curr_comp_map temp_curr_comp_lut[] = {
 			{250, 17},
 			{850, 28},
 };
+/*aidongdong modify for full state volt ibat check 20150522-1 begin*/
+int recharge_trigger =0 ;
+int report_full = 0;
+int runin_test_is_run =0 ;
+int runin_low_power_num = 0;
+/*aidongdong modify for full state volt ibat check 20150522-1 end*/
+/*xiongzuan modify for full state volt ibat check and boot up soc update 20150323 begin*/
+int shut_ocv_true = 3800000;
+/*xiongzuan modify for full state volt ibat check and boot up soc update 20150323 end*/
 
 static void disable_bms_irq(struct bms_irq *irq)
 {
@@ -297,6 +311,7 @@ static void disable_bms_irq(struct bms_irq *irq)
 		pr_debug("disabled irq %d\n", irq->irq);
 	}
 }
+
 
 static void enable_bms_irq(struct bms_irq *irq)
 {
@@ -338,6 +353,14 @@ static int bound_soc(int soc)
 static char *qpnp_vm_bms_supplicants[] = {
 	"battery",
 };
+
+//aidongdong add for battery id info by 20140804 begin
+enum {
+	POWER_SUPPLY_BATT_ID_UNKNOWN = 0,
+	POWER_SUPPLY_BATT_ID_BYD,
+	POWER_SUPPLY_BATT_ID_FUJIAN,
+	};
+//aidongdong add for battery id info by 20140804 end
 
 static int qpnp_read_wrapper(struct qpnp_bms_chip *chip, u8 *val,
 					u16 base, int count)
@@ -1464,9 +1487,13 @@ static void check_recharge_condition(struct qpnp_bms_chip *chip)
 	}
 }
 
+/*aidongdong modify for resume charging volt  begin 20150508*/
+#define RESUME_CHG_VOLT  4250000
+#define FULL_CHG_VOLT  4350000
 static void check_eoc_condition(struct qpnp_bms_chip *chip)
 {
 	int rc;
+	int vbatt;
 	int status = get_battery_status(chip);
 	union power_supply_propval ret = {0,};
 
@@ -1474,6 +1501,7 @@ static void check_eoc_condition(struct qpnp_bms_chip *chip)
 		pr_err("Unable to read battery status\n");
 		return;
 	}
+	rc = get_battery_voltage(chip, &vbatt);
 
 	/*
 	 * Check battery status:
@@ -1490,9 +1518,10 @@ static void check_eoc_condition(struct qpnp_bms_chip *chip)
 	 * if the SOC drops, reset ocv_at_100.
 	 */
 	if (chip->ocv_at_100 == -EINVAL) {
-		if (chip->last_soc == 100) {
+		if ((chip->last_soc == 100) && (vbatt >=FULL_CHG_VOLT)&&(chip->calculated_soc ==100) ) {
 			if (chip->dt.cfg_report_charger_eoc) {
 				rc = report_eoc(chip);
+				report_full = 1;
 				if (!rc) {
 					/*
 					 * update ocv_at_100 only if EOC is
@@ -1506,43 +1535,47 @@ static void check_eoc_condition(struct qpnp_bms_chip *chip)
 					chip->ocv_at_100 = -EINVAL;
 				}
 			}
-			if (chip->dt.cfg_use_reported_soc) {
-				/* begin reported_soc process */
-				chip->reported_soc_in_use = true;
-				chip->charger_removed_since_full = false;
-				chip->charger_reinserted = false;
-				chip->reported_soc = 100;
-				pr_debug("Begin reported_soc process\n");
+		}
+		else {
+			report_full = 0;
+			pr_debug("chip->last_soc =%d\n",chip->last_soc);
+			if((status == POWER_SUPPLY_STATUS_FULL)&&(vbatt < RESUME_CHG_VOLT)){
+				pr_err("FULL recharger\n");
+				recharge_trigger = 1;
 			}
 		}
 	} else {
-		if (chip->last_ocv_uv >= chip->ocv_at_100) {
+		if (vbatt > RESUME_CHG_VOLT) {
 			pr_debug("new_ocv(%d) > ocv_at_100(%d) maintaining SOC to 100\n",
 					chip->last_ocv_uv, chip->ocv_at_100);
 			chip->ocv_at_100 = chip->last_ocv_uv;
 			chip->last_soc = 100;
-		} else if (chip->last_soc != 100) {
+			recharge_trigger = 0;
+		} 
+		else {
+		        recharge_trigger = 1;
+			report_full = 0;
+			if ((status == POWER_SUPPLY_STATUS_CHARGING) ||(status == POWER_SUPPLY_STATUS_FULL)) {
+				chip->last_soc = 100;
+				}
+		} 
+		 if (chip->last_soc != 100) {
 			/*
 			 * Report that the battery is discharging.
 			 * This gets called once when the SOC falls
 			 * below 100.
 			 */
-			if (chip->reported_soc_in_use
-					&& chip->reported_soc == 100) {
-				pr_debug("reported_soc=100, last_soc=%d, do not send DISCHARING status\n",
-						chip->last_soc);
-			} else {
-				ret.intval = POWER_SUPPLY_STATUS_DISCHARGING;
-				chip->batt_psy->set_property(chip->batt_psy,
-					POWER_SUPPLY_PROP_STATUS, &ret);
-			}
+			ret.intval = POWER_SUPPLY_STATUS_DISCHARGING;
+			chip->batt_psy->set_property(chip->batt_psy,
+						POWER_SUPPLY_PROP_STATUS, &ret);
+
 			pr_debug("SOC dropped (%d) discarding ocv_at_100\n",
 							chip->last_soc);
 			chip->ocv_at_100 = -EINVAL;
 		}
 	}
 }
-
+/*aidongdong modify for resume charging volt  end 20150508*/
 static int report_voltage_based_soc(struct qpnp_bms_chip *chip)
 {
 	pr_debug("Reported voltage based soc = %d\n",
@@ -1582,19 +1615,26 @@ static int prepare_reported_soc(struct qpnp_bms_chip *chip)
 					chip->reported_soc, chip->last_soc);
 	return chip->reported_soc;
 }
-
+//xiognzuan add shut down when Usb line power supply by 20150523 begin 
+/*xiongzuan add The current capacity and actual calculation capacity of more than 30%, the refresh capacity by 20150302 begin*/
 #define SOC_CATCHUP_SEC_MAX		600
 #define SOC_CATCHUP_SEC_PER_PERCENT	60
 #define MAX_CATCHUP_SOC	(SOC_CATCHUP_SEC_MAX / SOC_CATCHUP_SEC_PER_PERCENT)
 #define SOC_CHANGE_PER_SEC		5
 static int report_vm_bms_soc(struct qpnp_bms_chip *chip)
 {
-	int soc, soc_change, batt_temp, rc;
+	int soc, soc_change, batt_temp;
 	int time_since_last_change_sec = 0, charge_time_sec = 0;
 	unsigned long last_change_sec;
 	bool charging;
+	int vbatt,rc;
 
 	soc = chip->calculated_soc;
+	rc = get_battery_voltage(chip, &vbatt);
+		if (rc) {
+			pr_err("Unable to read battery-voltage rc=%d\n", rc);
+			return rc;
+		}
 
 	last_change_sec = chip->last_soc_change_sec;
 	calculate_delta_time(&last_change_sec, &time_since_last_change_sec);
@@ -1718,16 +1758,39 @@ static int report_vm_bms_soc(struct qpnp_bms_chip *chip)
 	 * We do not want the algorithm to be based of a wrong
 	 * initial OCV.
 	 */
-
-	backup_ocv_soc(chip, chip->last_ocv_uv, chip->last_soc);
+	if(charging)
+	{
+		if(runin_low_power_num < 10)
+			runin_low_power_num++;
+		if((vbatt<3250000) &&  (runin_low_power_num>=3)){
+			chip->last_soc = 0;
+			pr_info("vbatt=%d\n", vbatt);
+		}
+	}else{
+		runin_low_power_num = 0;
+	}
+      
+//xiognzuan add SOC jump when Usb line power supply by 20150520 begin 	
+   if (is_battery_present(chip)) {
+		backup_ocv_soc(chip, chip->last_ocv_uv, chip->last_soc);
+    }
+//xiognzuan add SOC jump when Usb line power supply by 20150520 end 
 
 	if (chip->reported_soc_in_use)
 		return prepare_reported_soc(chip);
 
 	pr_debug("Reported SOC=%d\n", chip->last_soc);
-
+	/* Add by lichuangchuang for battery debug (8909) SW00131408 20150507 start*/
+	if(soc_pre != chip->last_soc){
+		soc_pre = chip->last_soc;
+		pr_info("report_vm_bms_soc: Reported SOC=%d, OCV_mV=%dmV, vbatt_mV=%dmV, batt_temp=%d, charging=%d, time_since_last_change_sec=%d, current_now=%d.\n", 
+			chip->last_soc, (chip->last_ocv_uv)/1000, vbatt/1000, batt_temp, charging, time_since_last_change_sec, (chip->current_now)/1000);
+	}
+	/* Add by lichuangchuang for battery debug (8909) SW00131408 20150507 end*/
 	return chip->last_soc;
 }
+/*xiongzuan add The current capacity and actual calculation capacity of more than 30%, the refresh capacity by 20150302 end*/
+//xiognzuan add shut down when Usb line power supply by 20150523 end 
 
 static int report_state_of_charge(struct qpnp_bms_chip *chip)
 {
@@ -2032,7 +2095,6 @@ static int clamp_soc_based_on_voltage(struct qpnp_bms_chip *chip, int soc)
 		return soc;
 	}
 }
-
 static void battery_voltage_check(struct qpnp_bms_chip *chip)
 {
 	int rc, vbat_uv = 0;
@@ -2047,17 +2109,21 @@ static void battery_voltage_check(struct qpnp_bms_chip *chip)
 }
 
 #define UI_SOC_CATCHUP_TIME	(60)
+/*xiongzuan add The current capacity and actual calculation capacity of more than 30%, the refresh capacity by 20150302 begin*/
+/*xiongzuan modify for shutdown soc begin 20150520 begin*/
 static void monitor_soc_work(struct work_struct *work)
 {
 	struct qpnp_bms_chip *chip = container_of(work,
 				struct qpnp_bms_chip,
 				monitor_soc_work.work);
 	int rc, new_soc = 0, batt_temp;
-
+	bool charging;
+	bool charger_present = is_charger_present(chip);
 	bms_stay_awake(&chip->vbms_soc_wake_source);
 
 	calculate_delta_time(&chip->tm_sec, &chip->delta_time_s);
 	pr_debug("elapsed_time=%d\n", chip->delta_time_s);
+	charging = is_battery_charging(chip);
 
 	mutex_lock(&chip->last_soc_mutex);
 
@@ -2084,14 +2150,37 @@ static void monitor_soc_work(struct work_struct *work)
 				chip->last_soc_invalid = false;
 				chip->last_soc = -EINVAL;
 			}
+			pr_debug("old calculated_soc =%d,chip->last_ocv_uv=%d\n",chip->calculated_soc,chip->last_ocv_uv);
 			new_soc = lookup_soc_ocv(chip, chip->last_ocv_uv,
 								batt_temp);
 			/* clamp soc due to BMS hw/sw immaturities */
 			new_soc = clamp_soc_based_on_voltage(chip, new_soc);
+			if((charger_present == 1)&&(chip->calculated_soc == 100)&&(new_soc < 100)&&(new_soc > 93))
+			{
+				pr_info("new_soc!=calculated_soc new_soc=%d,chip->calculated_soc=%d\n",new_soc,chip->calculated_soc);
+				new_soc = 100;
+			}
+			pr_debug("new_soc =%d\n",new_soc);
 
 			if (chip->calculated_soc != new_soc) {
 				pr_debug("SOC changed! new_soc=%d prev_soc=%d\n",
 						new_soc, chip->calculated_soc);
+				if(!charging) {
+					if (chip->calculated_soc > new_soc ) {
+						new_soc = chip->calculated_soc - 1;
+						}
+					  else {
+					  	new_soc = chip->calculated_soc ;
+					  	}
+					}
+				else {
+					if (chip->calculated_soc > new_soc ) {
+						new_soc = chip->calculated_soc ;
+				    	}
+					  else {
+					  	new_soc = chip->calculated_soc +1 ;
+					  	}
+					}
 				chip->calculated_soc = new_soc;
 				/*
 				 * To recalculate the catch-up time, clear it
@@ -2119,8 +2208,8 @@ static void monitor_soc_work(struct work_struct *work)
 	 * schedule the work only if last_soc has not caught up with
 	 * the calculated soc or if we are using voltage based soc
 	 */
-	if ((chip->last_soc != chip->calculated_soc) ||
-					chip->dt.cfg_use_voltage_soc)
+	/*if ((chip->last_soc != chip->calculated_soc) ||
+					chip->dt.cfg_use_voltage_soc)*/
 		schedule_delayed_work(&chip->monitor_soc_work,
 			msecs_to_jiffies(get_calculation_delay_ms(chip)));
 
@@ -2142,7 +2231,8 @@ static void monitor_soc_work(struct work_struct *work)
 
 	bms_relax(&chip->vbms_soc_wake_source);
 }
-
+/*xiongzuan modify for shutdown soc end 20150520 end*/
+/*xiongzuan add The current capacity and actual calculation capacity of more than 30%, the refresh capacity by 20150302 end*/
 static void voltage_soc_timeout_work(struct work_struct *work)
 {
 	struct qpnp_bms_chip *chip = container_of(work,
@@ -2193,6 +2283,37 @@ static int qpnp_vm_bms_config_power_state(struct qpnp_bms_chip *chip,
 	return 0;
 }
 
+//aidongdong add for battery id info by 20140804 begin 
+static int64_t read_battery_id(struct qpnp_bms_chip *chip);
+//aidongdong add for battery id info end
+
+//aidongdong add for battery id info by 20140804 begin 
+#define  BATT_ID_10K    150000              //BYD
+#define  BATT_ID_470K    1485000              //FUJIAN
+#define  BATT_ID_BIAS  100000
+
+static int get_prop_bms_info(struct qpnp_bms_chip *chip)
+{
+	int64_t battery_id;
+	int battery_info = 0;
+	battery_id = read_battery_id(chip);
+	if (battery_id < 0) {
+		pr_err("cannot read battery id err = %lld\n",battery_id);
+		return battery_id;
+		}
+	if ((battery_id > (BATT_ID_10K - BATT_ID_BIAS)) && (battery_id < (BATT_ID_10K + BATT_ID_BIAS))) {
+		battery_info = POWER_SUPPLY_BATT_ID_BYD;
+		}
+	else if ((battery_id > (BATT_ID_470K - BATT_ID_BIAS)) && (battery_id < (BATT_ID_470K + BATT_ID_BIAS))) {
+		battery_info = POWER_SUPPLY_BATT_ID_FUJIAN;
+		}	
+	else {
+		  	battery_info = POWER_SUPPLY_BATT_ID_UNKNOWN;
+			}
+	chip->battery_id_info = battery_info;
+	return 0;
+}
+//aidongdong add for battery id info end
 static int get_prop_bms_current_now(struct qpnp_bms_chip *chip)
 {
 	return chip->current_now;
@@ -2211,6 +2332,9 @@ static enum power_supply_property bms_power_props[] = {
 	POWER_SUPPLY_PROP_BATTERY_TYPE,
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
+    //aidongdong add for battery id info by 20140804 begin	
+	POWER_SUPPLY_PROP_BATT_INFO_ID,
+	//aidongdong add for battery id info by 20140804 end	
 };
 
 static int
@@ -2283,6 +2407,12 @@ static int qpnp_vm_bms_power_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_LOW_POWER:
 		val->intval = !is_hi_power_state_requested(chip);
 		break;
+	//aidongdong add for battery id info by 20140804 begin
+	case POWER_SUPPLY_PROP_BATT_INFO_ID:
+		get_prop_bms_info(chip);
+		val->intval = chip->battery_id_info;
+		break;
+	//aidongdong add for battery id info by 20140804 end
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
 		if (chip->dt.cfg_battery_aging_comp)
 			val->intval = chip->charge_cycles;
@@ -2294,14 +2424,17 @@ static int qpnp_vm_bms_power_get_property(struct power_supply *psy,
 	}
 	return 0;
 }
+/*xiongzuan modify for shutdown soc and chg 20150127 begin*/
 
 static int qpnp_vm_bms_power_set_property(struct power_supply *psy,
 					enum power_supply_property psp,
 					const union power_supply_propval *val)
 {
 	int rc = 0;
+	int vbat_uv =0;
 	struct qpnp_bms_chip *chip = container_of(psy,
 				struct qpnp_bms_chip, bms_psy);
+	rc = get_battery_voltage(chip, &vbat_uv);
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
@@ -2309,10 +2442,21 @@ static int qpnp_vm_bms_power_set_property(struct power_supply *psy,
 		pr_debug("IBATT = %d\n", val->intval);
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
-		cancel_delayed_work_sync(&chip->monitor_soc_work);
+		//cancel_delayed_work_sync(&chip->monitor_soc_work);
 		chip->last_ocv_uv = val->intval;
-		pr_debug("OCV = %d\n", val->intval);
-		schedule_delayed_work(&chip->monitor_soc_work, 0);
+		pr_debug("val->intval=%d,vbat_uv=%d\n",val->intval,vbat_uv);
+		/* Modify by lichuangchuang for battery debug (8909) SW00134442 201505012 start*/
+		#if 0
+		if((val->intval -vbat_uv)>120000){
+			chip->last_ocv_uv = vbat_uv+120000 ;
+			}
+		else if((val->intval -vbat_uv)>90000){
+			chip->last_ocv_uv = vbat_uv+90000 ;
+			}
+		#endif
+		/* Modify by lichuangchuang for battery debug (8909) SW00134442 201505012 end*/
+		pr_debug("OCV = %d\n", chip->last_ocv_uv);
+		//schedule_delayed_work(&chip->monitor_soc_work, 0);
 		break;
 	case POWER_SUPPLY_PROP_HI_POWER:
 		rc = qpnp_vm_bms_config_power_state(chip, val->intval, true);
@@ -2329,6 +2473,7 @@ static int qpnp_vm_bms_power_set_property(struct power_supply *psy,
 	}
 	return rc;
 }
+/*xiongzuan modify for shutdown soc and chg 20150129 end*/
 
 static void bms_new_battery_setup(struct qpnp_bms_chip *chip)
 {
@@ -2794,6 +2939,16 @@ static int read_shutdown_ocv_soc(struct qpnp_bms_chip *chip)
 	} else {
 		chip->shutdown_soc = (stored_soc >> 1) - 1;
 	}
+/*xiongzuan modify for boot up soc update 20150323 begin*/
+	shut_ocv_true = chip->shutdown_ocv;
+/*xiongzuan modify for boot up soc update 20150323 begin*/	
+	/*xiongzuan modify for poweroff charging capacity display  20141204 begin*/
+	if((chip->shutdown_soc==100)&&(chip->shutdown_ocv < 4350000))
+	{
+		pr_info("HW shutdown_ocv1=%d\n",chip->shutdown_ocv);
+		chip->shutdown_ocv = 4350000 ;
+	}
+    /*xiongzuan modify for poweroff charging capacity display  20141204 end*/
 
 	pr_debug("shutdown_ocv=%d shutdown_soc=%d\n",
 			chip->shutdown_ocv, chip->shutdown_soc);
@@ -2827,9 +2982,10 @@ static int interpolate_current_comp(int die_temp)
 				die_temp);
 }
 
+//xiognzuan add SOC jump when Usb line power supply by 20150520 begin 
 static void adjust_pon_ocv(struct qpnp_bms_chip *chip, int batt_temp)
 {
-	int rc, current_ma, rbatt_mohm, die_temp, delta_uv, pc;
+	int rc, current_ma, rbatt_mohm, die_temp, delta_uv, pc, vbatt;
 	struct qpnp_vadc_result result;
 
 	rc = qpnp_vadc_read(chip->vadc_dev, DIE_TEMP, &result);
@@ -2855,13 +3011,27 @@ static void adjust_pon_ocv(struct qpnp_bms_chip *chip, int batt_temp)
 			rbatt_mohm, current_ma, die_temp, batt_temp, delta_uv);
 
 		chip->last_ocv_uv += delta_uv;
+		pr_info("last PON OCV chip->last_ocv_uv=%d\n", chip->last_ocv_uv);
+		rc = get_battery_voltage(chip, &vbatt);
+		pr_info("PON OCV vbatt=%d\n", vbatt);
+		if (rc) {
+			pr_err("error reading adc channel=%d, rc=%d\n", DIE_TEMP, rc);
+		} else{
+			if((chip->last_ocv_uv > 4190000)&&(vbatt<3800000)){
+				chip->last_ocv_uv = vbatt + 150000;
+				pr_info("PON OCV chip->last_ocv_uv=%d\n", chip->last_ocv_uv);
+			}
+		}
 	}
 }
-
+//xiognzuan add SOC jump when Usb line power supply by 20150520 end 
+//xiongzuan modify  recalculate the soc when  abs(chip->shutdown_soc - chip->calculated_soc) >30 and boot up soc update 20150323 begin
 static int calculate_initial_soc(struct qpnp_bms_chip *chip)
 {
 	int rc, batt_temp = 0, est_ocv = 0;
-
+	int shutdown_soc_invalid = 0;
+	int est_soc = 50 ;
+		
 	rc = get_batt_therm(chip, &batt_temp);
 	if (rc < 0) {
 		pr_err("Unable to read batt temp, using default=%d\n",
@@ -2878,30 +3048,39 @@ static int calculate_initial_soc(struct qpnp_bms_chip *chip)
 	rc = read_shutdown_ocv_soc(chip);
 	if (rc < 0  || chip->dt.cfg_ignore_shutdown_soc)
 		chip->shutdown_soc_invalid = true;
-
+		
+	est_ocv = estimate_ocv(chip);
+			if (est_ocv <= 0) {
+				pr_err("Unable to estimate OCV rc=%d\n",
+								est_ocv);
+				return -EINVAL;
+			}
+	est_soc = lookup_soc_ocv(chip, est_ocv,
+								batt_temp);
+	pr_info("HW est_soc=%d,est_ocv=%d\n",est_soc,est_ocv);
+	
 	if (chip->warm_reset) {
 		/*
 		 * if we have powered on from warm reset -
 		 * Always use shutdown SOC. If shudown SOC is invalid then
 		 * estimate OCV
 		 */
-		if (chip->shutdown_soc_invalid) {
+		est_soc = lookup_soc_ocv(chip,
+						shut_ocv_true, batt_temp);
+		pr_info("shut_ocv_true=%d\n", shut_ocv_true);
+		if ((shutdown_soc_invalid)||(abs(chip->shutdown_soc - est_soc) >
+				chip->dt.cfg_shutdown_soc_valid_limit)) {
 			pr_debug("Estimate OCV\n");
-			est_ocv = estimate_ocv(chip);
-			if (est_ocv <= 0) {
-				pr_err("Unable to estimate OCV rc=%d\n",
-								est_ocv);
-				return -EINVAL;
-			}
-			chip->last_ocv_uv = est_ocv;
-			chip->calculated_soc = lookup_soc_ocv(chip, est_ocv,
-								batt_temp);
+			
+			chip->last_ocv_uv = shut_ocv_true;
+			chip->calculated_soc = est_soc;
 		} else {
 			chip->last_ocv_uv = chip->shutdown_ocv;
 			chip->last_soc = chip->shutdown_soc;
-			chip->calculated_soc = lookup_soc_ocv(chip,
-						chip->shutdown_ocv, batt_temp);
-			pr_debug("Using shutdown SOC\n");
+			chip->calculated_soc = chip->shutdown_soc;
+			/*chip->calculated_soc = lookup_soc_ocv(chip,
+						chip->shutdown_ocv, batt_temp);*/
+			pr_info("Using shutdown SOC\n");
 		}
 	} else {
 		/*
@@ -2920,8 +3099,9 @@ static int calculate_initial_soc(struct qpnp_bms_chip *chip)
 				chip->dt.cfg_shutdown_soc_valid_limit)) {
 			chip->last_ocv_uv = chip->shutdown_ocv;
 			chip->last_soc = chip->shutdown_soc;
-			chip->calculated_soc = lookup_soc_ocv(chip,
-						chip->shutdown_ocv, batt_temp);
+			chip->calculated_soc = chip->shutdown_soc;
+			/*chip->calculated_soc = lookup_soc_ocv(chip,
+						chip->shutdown_ocv, batt_temp);*/
 			pr_debug("Using shutdown SOC\n");
 		} else {
 			chip->shutdown_soc_invalid = true;
@@ -2938,7 +3118,7 @@ static int calculate_initial_soc(struct qpnp_bms_chip *chip)
 
 	return 0;
 }
-
+//xiongzuan modify  recalculate the soc when  abs(chip->shutdown_soc - chip->calculated_soc) >30 and boot up soc update 20150323  end
 static int calculate_initial_aging_comp(struct qpnp_bms_chip *chip)
 {
 	int rc;
@@ -3437,25 +3617,33 @@ static const struct file_operations bms_data_debugfs_ops = {
 	.release	= single_release,
 };
 
+//xiognzuan add Battery characteristics compatible by 20150513 begin 
 static int set_battery_data(struct qpnp_bms_chip *chip)
 {
 	int64_t battery_id;
 	int rc = 0;
 	struct bms_battery_data *batt_data;
 	struct device_node *node;
-
 	battery_id = read_battery_id(chip);
+	get_prop_bms_info(chip);
 	if (battery_id < 0) {
 		pr_err("cannot read battery id err = %lld\n", battery_id);
 		return battery_id;
 	}
-	node = of_find_node_by_name(chip->spmi->dev.of_node,
-					"qcom,battery-data");
+	
+	if((chip->battery_id_info)==POWER_SUPPLY_BATT_ID_BYD){
+		node = of_find_node_by_name(chip->spmi->dev.of_node,
+					"qcom,battery-data-byd");
+                   pr_err("load byd battery\n");
+	}else{
+		node = of_find_node_by_name(chip->spmi->dev.of_node,
+					"qcom,battery-data-scud");
+                    pr_err("load scud battery\n");
+	}	
 	if (!node) {
 			pr_err("No available batterydata\n");
 			return -EINVAL;
-	}
-
+	}	
 	batt_data = devm_kzalloc(chip->dev,
 			sizeof(struct bms_battery_data), GFP_KERNEL);
 	if (!batt_data) {
@@ -3522,6 +3710,7 @@ static int set_battery_data(struct qpnp_bms_chip *chip)
 
 	return 0;
 }
+//xiognzuan add Battery characteristics compatible by 20150513 end
 
 static int parse_spmi_dt_properties(struct qpnp_bms_chip *chip,
 				struct spmi_device *spmi)
@@ -3837,6 +4026,7 @@ static int qpnp_vm_bms_probe(struct spmi_device *spmi)
 	mutex_init(&chip->last_soc_mutex);
 	mutex_init(&chip->state_change_mutex);
 	init_waitqueue_head(&chip->bms_wait_q);
+	
 
 	/* read battery-id and select the battery profile */
 	rc = set_battery_data(chip);
@@ -3844,6 +4034,7 @@ static int qpnp_vm_bms_probe(struct spmi_device *spmi)
 		pr_err("Unable to read battery data %d\n", rc);
 		goto fail_init;
 	}
+
 
 	/* set the battery profile */
 	rc = config_battery_data(chip->batt_data);

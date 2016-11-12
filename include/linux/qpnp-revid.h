@@ -131,6 +131,8 @@
 #define PM8909_V1P1_REV4	0x01
 #define PM8909_V1P1_TYPE	0x51
 #define PM8909_V1P1_SUBTYPE	0x0D
+ //add by shihuijun for tp charge interface updatedate 20150127
+extern int chg_insert_for_tp;
 
 struct pmic_revid_data {
 	u8	rev1;

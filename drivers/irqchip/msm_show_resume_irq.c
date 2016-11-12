@@ -14,9 +14,9 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
-
-int msm_show_resume_irq_mask;
-
+/*modify by caixiaoguang 20150523 for enable wakeup irq log begin*/
+int msm_show_resume_irq_mask = 1;
+/*modify by caixiaoguang 20150523 for enable wakeup irq log end*/
 module_param_named(
 	debug_mask, msm_show_resume_irq_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
 );

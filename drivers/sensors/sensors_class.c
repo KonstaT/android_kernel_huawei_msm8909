@@ -220,7 +220,39 @@ static ssize_t sensors_enable_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%u\n",
 			sensors_cdev->enabled);
 }
+//add by yanfei for calibration fuction 20140728 begin
+static ssize_t sensors_crosstalk_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct sensors_classdev *sensors_cdev = dev_get_drvdata(dev);
+	ssize_t ret = -EINVAL;
+	unsigned long data = 0;
+	
+	data = simple_strtoul(buf, NULL, 10);
+	if (data < 0) {
+		dev_err(dev, "Invalid value of input, input=%ld\n", data);
+		return -EINVAL;
+	}
 
+	if (sensors_cdev->sensors_get_crosstalk == NULL) {
+		dev_err(dev, "Invalid sensor class enable handle\n");
+		return -EINVAL;
+	}
+	ret = sensors_cdev->sensors_get_crosstalk(sensors_cdev, data);
+	if (ret)
+		return ret;
+	sensors_cdev->pdata = data;
+
+	return size;
+}
+static ssize_t sensors_crosstalk_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sensors_classdev *sensors_cdev = dev_get_drvdata(dev);
+	return snprintf(buf, PAGE_SIZE, "%u\n",
+			sensors_cdev->pdata);
+}
+//add by yanfei for calibration fuction 20140728 end
 static ssize_t sensors_delay_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
@@ -475,9 +507,10 @@ static struct device_attribute sensors_class_attrs[] = {
 	__ATTR(flush, 0660, sensors_flush_show, sensors_flush_store),
 	__ATTR(calibrate, 0664, sensors_calibrate_show,
 			sensors_calibrate_store),
+	__ATTR(ps_crosstalk, 0664, sensors_crosstalk_show, sensors_crosstalk_store),
 	__ATTR_NULL,
 };
-
+//add calibration fuction 20140728 end
 /**
  * sensors_classdev_register - register a new object of sensors_classdev class.
  * @parent: The device to register.

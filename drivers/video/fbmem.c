@@ -1042,6 +1042,17 @@ fb_set_var(struct fb_info *info, struct fb_var_screeninfo *var)
  done:
 	return ret;
 }
+/*distinguish whether the charger mode or not by xingbin*/
+#define	ANDROID_BOOT_MODE_MAX	30
+static char android_boot_mode[ANDROID_BOOT_MODE_MAX];
+
+static int get_android_boot_mode(char *str)
+{
+	strlcpy(android_boot_mode, str, ANDROID_BOOT_MODE_MAX);
+	return 1;
+}
+__setup("androidboot.mode=", get_android_boot_mode);
+/*distinguish whether the charger mode or not by xingbin*/
 
 int
 fb_blank(struct fb_info *info, int blank)
@@ -1054,6 +1065,17 @@ fb_blank(struct fb_info *info, int blank)
 
 	event.info = info;
 	event.data = &blank;
+	
+/*no need to notify other modules blank/unblank status in charger mode
+    to speed-up the lcd resuming  by xingbin start*/
+	if (!strncmp(android_boot_mode, "charger",7)){
+		if (info->fbops->fb_blank)
+				ret = info->fbops->fb_blank(blank, info);
+		return ret;
+
+	}
+/*no need to notify other modules blank/unblank status in charger mode
+		to speed-up the lcd resuming  by xingbin end*/
 
 	early_ret = fb_notifier_call_chain(FB_EARLY_EVENT_BLANK, &event);
 

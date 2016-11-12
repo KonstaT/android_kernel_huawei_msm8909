@@ -63,7 +63,7 @@ static void *emergency_dload_mode_addr;
 static bool scm_dload_supported;
 
 static int dload_set(const char *val, struct kernel_param *kp);
-static int download_mode = 1;
+static int download_mode = 0;/*Modifyed by liumx for download_mode 20140806*/
 module_param_call(download_mode, dload_set, param_get_int,
 			&download_mode, 0644);
 static int panic_prep_restart(struct notifier_block *this,
@@ -225,6 +225,10 @@ static void msm_restart_prepare(const char *cmd)
 
 	set_dload_mode(download_mode &&
 			(in_panic || restart_mode == RESTART_DLOAD));
+	/*Added by liumx for download 20140807 start*/
+	if (restart_mode == RESTART_DLOAD)
+		set_dload_mode(1);
+	/*Added by liumx for download 20140807 end*/
 #endif
 
 	need_warm_reset = (get_dload_mode() ||

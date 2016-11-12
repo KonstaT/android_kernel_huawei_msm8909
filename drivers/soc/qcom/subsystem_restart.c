@@ -1468,6 +1468,8 @@ struct subsys_device *subsys_register(struct subsys_desc *desc)
 	subsys->desc->sysmon_pid = -1;
 
 	subsys->notify = subsys_notif_add_subsys(desc->name);
+    /* added by liumx for setting default restart_level 20150422 */
+    subsys->restart_level = 1;
 
 	snprintf(subsys->wlname, sizeof(subsys->wlname), "ssr(%s)", desc->name);
 	wakeup_source_init(&subsys->ssr_wlock, subsys->wlname);

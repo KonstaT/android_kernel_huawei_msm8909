@@ -69,6 +69,11 @@ static ssize_t power_supply_show_property(struct device *dev,
 	static char *scope_text[] = {
 		"Unknown", "System", "Device"
 	};
+	//aidongdong add for battery id info by 20140804 begin
+	static char *battery_id_text[] = {
+		"Unknown", "BYD", "FUJIAN"
+	};
+	//aidongdong add for battery id info by 20140804 end
 	ssize_t ret = 0;
 	struct power_supply *psy = dev_get_drvdata(dev);
 	const ptrdiff_t off = attr - power_supply_attrs;
@@ -103,6 +108,10 @@ static ssize_t power_supply_show_property(struct device *dev,
 		return sprintf(buf, "%s\n", type_text[value.intval]);
 	else if (off == POWER_SUPPLY_PROP_SCOPE)
 		return sprintf(buf, "%s\n", scope_text[value.intval]);
+	//aidongdong add for battery id info by 20140804 begin
+	else if (off == POWER_SUPPLY_PROP_BATT_INFO_ID)
+		return sprintf(buf, "%s\n", battery_id_text[value.intval]);
+	//aidongdong add for battery id info by 20140804 end
 	else if (off >= POWER_SUPPLY_PROP_MODEL_NAME)
 		return sprintf(buf, "%s\n", value.strval);
 
@@ -161,6 +170,9 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(input_current_settled),
 	POWER_SUPPLY_ATTR(bypass_vchg_loop_debouncer),
 	POWER_SUPPLY_ATTR(current_now),
+	//aidongdong add for battery id info by 20140804 begin
+	POWER_SUPPLY_ATTR(battery_id),
+	//aidongdong add for battery id info by 20140804 end	
 	POWER_SUPPLY_ATTR(current_avg),
 	POWER_SUPPLY_ATTR(power_now),
 	POWER_SUPPLY_ATTR(power_avg),

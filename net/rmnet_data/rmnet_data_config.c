@@ -1142,6 +1142,7 @@ static void rmnet_force_unassociate_device(struct net_device *dev)
 	INIT_WORK(&vnd_work->work, _rmnet_free_vnd_later);
 	vnd_work->count = 0;
 
+	trace_rmnet_unregister_cb_clear_vnds(dev);
 	/* Check the VNDs for offending mappings */
 	for (i = 0, j = 0; i < RMNET_DATA_MAX_VND &&
 				j < RMNET_DATA_MAX_VND; i++) {
